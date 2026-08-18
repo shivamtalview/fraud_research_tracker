@@ -2,7 +2,7 @@ const path = require("path");
 const crypto = require("crypto");
 const express = require("express");
 const session = require("express-session");
-const { getAllEntries, insertEntry } = require("./db");
+const { init, getAllEntries, insertEntry } = require("./db");
 
 const APP_PASSWORD = process.env.APP_PASSWORD;
 const SESSION_SECRET = process.env.SESSION_SECRET;
@@ -59,11 +59,16 @@ function requireAuth(req, res, next) {
   return res.status(401).json({ error: "Not authenticated." });
 }
 
-app.get("/api/entries", requireAuth, (req, res) => {
-  res.json(getAllEntries());
+app.get("/api/entries", requireAuth, async (req, res) => {
+  try {
+    res.json(await getAllEntries());
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch entries." });
+  }
 });
 
-app.post("/api/entries", requireAuth, (req, res) => {
+app.post("/api/entries", requireAuth, async (req, res) => {
   const body = req.body || {};
   const { date, title } = body;
   if (!date || !title) {
@@ -78,13 +83,26 @@ app.post("/api/entries", requireAuth, (req, res) => {
     summary: Array.isArray(body.summary) ? body.summary : [],
     references: Array.isArray(body.references) ? body.references : []
   };
-  const created = insertEntry(entry);
-  res.status(201).json(created);
+  try {
+    const created = await insertEntry(entry);
+    res.status(201).json(created);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to save entry." });
+  }
 });
 
 app.use(express.static(path.join(__dirname, "public")));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Fraud research tracker listening on port ${PORT}`);
-});
+
+init()
+  .then(() => {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Fraud research tracker listening on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("Failed to initialise database:", err);
+    process.exit(1);
+  });

@@ -6,7 +6,7 @@ An internal web app for logging and reviewing fraud/test-security research findi
 
 - **Runtime:** Node.js 22
 - **Backend:** Express + express-session
-- **Database:** better-sqlite3 (SQLite, file: `data.sqlite`)
+- **Database:** Replit PostgreSQL (via `pg`, `DATABASE_URL` injected automatically)
 - **Frontend:** Vanilla HTML/CSS/JS in `public/`
 
 ## How to run
@@ -26,9 +26,8 @@ Both are set as Replit Secrets. Change `APP_PASSWORD` via the Secrets panel when
 
 ```
 server.js          Express server (auth, API routes)
-db.js              SQLite setup, seed data, query helpers
+db.js              PostgreSQL setup, seed data, query helpers
 public/index.html  Single-page frontend
-data.sqlite        SQLite database (auto-created on first run)
 ```
 
 ## User preferences
