@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exam Fraud &amp; Test Security — Research Tracker</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --surface-2:      #f9f9f7;
+    --card:           #ffffff;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+
+    --series-blue:    #2a78d6;  /* client: Cambridge Linguaskill */
+    --series-orange:  #eb6834;  /* client: GMAT */
+    --series-aqua:    #1baf7a;  /* client: General Test Security */
+    --series-violet:  #4a3aa7;  /* mode: Mode 1 Red Team */
+    --series-magenta: #e87ba4;  /* mode: Mode 2 Investigation */
+
+    --status-good:     #0ca30c;
+    --status-warning:  #fab219;
+    --status-serious:  #ec835a;
+    --status-critical: #d03b3b;
+
+    --shadow: 0 1px 2px rgba(11,11,11,0.04), 0 4px 14px rgba(11,11,11,0.05);
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --surface-2:      #0d0d0d;
+    --card:           #232322;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --gridline:       #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+
+    --series-blue:    #3987e5;
+    --series-orange:  #d95926;
+    --series-aqua:    #199e70;
+    --series-violet:  #9085e9;
+    --series-magenta: #d55181;
+
+    --status-good:     #0ca30c;
+    --status-warning:  #fab219;
+    --status-serious:  #ec835a;
+    --status-critical: #e66767;
+
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 14px rgba(0,0,0,0.35);
+    --date-icon-filter: invert(1);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--surface-2);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 28px 24px 90px; }
+  a { color: inherit; }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 16px; margin-bottom: 22px; flex-wrap: wrap;
+  }
+  .title-block { display: flex; gap: 12px; align-items: flex-start; }
+  .title-icon {
+    width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--series-violet), var(--series-magenta));
+    display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fff;
+  }
+  .title-block h1 { font-size: 21px; font-weight: 700; margin: 0 0 3px; letter-spacing: -.01em; }
+  .title-block .sub { margin: 0; color: var(--text-secondary); font-size: 13px; }
+  .title-block .meta { margin: 4px 0 0; color: var(--text-muted); font-size: 11.5px; }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+  button, .btn {
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    border-radius: 8px; border: 1px solid var(--border);
+    background: var(--card); color: var(--text-primary);
+    padding: 8px 13px; cursor: pointer; transition: background .15s, transform .1s;
+  }
+  button:hover, .btn:hover { background: var(--surface-1); }
+  button:active { transform: scale(0.97); }
+  button.primary { background: var(--series-violet); color: #fff; border-color: transparent; }
+  button.primary:hover { filter: brightness(1.1); }
+  button.ghost { background: transparent; }
+
+  /* ---------- Stat tiles ---------- */
+  .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 18px; }
+  @media (max-width: 980px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+  .stat-tile {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px 16px; box-shadow: var(--shadow); position: relative; overflow: hidden;
+  }
+  .stat-tile .icon { font-size: 15px; margin-bottom: 6px; opacity: .8; }
+  .stat-tile .val { font-size: 25px; font-weight: 700; font-variant-numeric: proportional-nums; line-height: 1.1; }
+  .stat-tile .lbl { font-size: 11.5px; color: var(--text-muted); margin-top: 3px; }
+  .stat-tile .accent { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+
+  /* ---------- Section shell ---------- */
+  section.block {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 18px 20px; margin-bottom: 16px; box-shadow: var(--shadow);
+  }
+  .block-head {
+    display: flex; align-items: center; justify-content: space-between; cursor: pointer;
+    user-select: none;
+  }
+  .block-head h2 { font-size: 14.5px; margin: 0; display: flex; align-items: center; gap: 8px; }
+  .block-head .hint { font-size: 12px; font-weight: 400; color: var(--text-muted); }
+  .block-head .chev { color: var(--text-muted); transition: transform .15s; font-size: 12px; }
+  .block-body { margin-top: 16px; }
+  .block-body.collapsed { display: none; }
+
+  /* ---------- Timeline ---------- */
+  .timeline-scroll { overflow-x: auto; padding-bottom: 6px; }
+  .timeline { display: flex; align-items: flex-end; gap: 26px; min-width: max-content; position: relative; padding: 10px 4px 0; }
+  .timeline::before {
+    content: ""; position: absolute; left: 4px; right: 4px; top: 34px; height: 2px; background: var(--gridline);
+  }
+  .tl-node { display: flex; flex-direction: column; align-items: center; cursor: pointer; position: relative; width: 84px; }
+  .tl-dot {
+    width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--card); z-index: 1;
+    box-shadow: 0 0 0 1px var(--baseline); transition: transform .12s;
+  }
+  .tl-node:hover .tl-dot { transform: scale(1.25); }
+  .tl-date { font-size: 10.5px; color: var(--text-muted); margin-top: 8px; text-align: center; }
+  .tl-label { font-size: 10px; color: var(--text-secondary); text-align: center; margin-top: 2px; max-width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ---------- Severity bar ---------- */
+  .sev-bar-wrap { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .sev-bar { flex: 1; min-width: 220px; display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--gridline); }
+  .sev-seg { height: 100%; }
+  .sev-legend { display: flex; gap: 16px; flex-wrap: wrap; }
+  .sev-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-secondary); }
+  .sev-legend-item .sw { width: 9px; height: 9px; border-radius: 3px; }
+  .sev-legend-item b { color: var(--text-primary); }
+
+  /* ---------- Registry ---------- */
+  .registry-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .reg-card {
+    border: 1px solid var(--border); border-radius: 11px; padding: 13px 14px; background: var(--surface-1);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .reg-card .reg-name { font-size: 13.5px; font-weight: 700; display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; }
+  .reg-card .reg-name a { text-decoration: none; }
+  .reg-card .reg-name a:hover { text-decoration: underline; }
+  .reg-cat { font-size: 11.5px; color: var(--text-secondary); }
+  .reg-meta { font-size: 11px; color: var(--text-muted); }
+  .reg-clients { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 2px; }
+  .reg-status {
+    font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+    border: 1px solid currentColor;
+  }
+  .reg-status.st-new { color: var(--series-violet); }
+  .reg-status.st-monitoring { color: var(--text-muted); }
+  .reg-status.st-contacted { color: var(--series-aqua); }
+
+  /* ---------- Tabs / filters ---------- */
+  .tabbar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .tab {
+    padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    border: 1px solid var(--border); background: var(--card); cursor: pointer; color: var(--text-secondary);
+  }
+  .tab .count { opacity: .7; font-weight: 500; }
+  .tab.active { color: #fff; border-color: transparent; }
+  .tab.active[data-mode="all"] { background: var(--text-primary); }
+  .tab.active[data-mode="1"] { background: var(--series-violet); }
+  .tab.active[data-mode="2"] { background: var(--series-magenta); }
+
+  .filter-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .filter-row select, .filter-row input[type="search"] {
+    font-family: inherit; font-size: 13px; padding: 7px 10px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--card); color: var(--text-primary);
+    -webkit-appearance: none; appearance: none;
+  }
+  .filter-row input[type="search"]::-webkit-search-cancel-button { display: none; }
+  .filter-row input[type="search"]::placeholder { color: var(--text-muted); }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text-secondary); margin-left: auto; }
+  .legend .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; }
+
+  /* ---------- Entry cards ---------- */
+  .entry {
+    border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px 16px 20px;
+    margin-bottom: 14px; background: var(--card); box-shadow: var(--shadow);
+    border-left-width: 4px; scroll-margin-top: 20px; transition: box-shadow .3s, background .3s;
+  }
+  .entry.flash { background: color-mix(in srgb, var(--series-blue) 10%, var(--card)); }
+  .entry-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .entry-title { font-size: 14.5px; font-weight: 700; margin: 0 0 4px; }
+  .entry-date { font-size: 12px; color: var(--text-muted); }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge {
+    font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; color: #fff;
+    white-space: nowrap;
+  }
+  .badge.outline { background: transparent; border: 1px solid var(--baseline); color: var(--text-secondary); font-weight: 600; }
+  h4.section-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); margin: 12px 0 5px; font-weight: 700; }
+  .entry ul { margin: 0; padding-left: 18px; font-size: 13px; }
+  .entry ul li { margin-bottom: 4px; }
+  .entry ol { margin: 0; padding-left: 18px; font-size: 13px; }
+  .entry ol li { margin-bottom: 8px; }
+  .status-chip { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 5px; margin-left: 6px; color: #fff; white-space: nowrap; display: inline-block; }
+  .refs { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .refs a {
+    font-size: 12px; color: var(--series-blue); text-decoration: none; border: 1px solid var(--border);
+    padding: 3px 9px; border-radius: 7px; background: var(--surface-1);
+  }
+  .refs a:hover { text-decoration: underline; }
+
+  /* ---------- Add-entry form ---------- */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-grid .full { grid-column: 1 / -1; }
+  .form-grid label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
+  .form-grid input, .form-grid select, .form-grid textarea {
+    width: 100%; font-family: inherit; font-size: 13px; padding: 8px 10px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); resize: vertical;
+    -webkit-appearance: none; appearance: none;
+  }
+  .form-grid input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--date-icon-filter, none); cursor: pointer; }
+  .form-hint { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+  .form-actions { display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; }
+  .session-banner {
+    background: color-mix(in srgb, var(--status-warning) 15%, var(--surface-1));
+    border: 1px solid var(--status-warning); border-radius: 10px; padding: 10px 14px;
+    font-size: 12.5px; color: var(--text-primary); margin-bottom: 14px; display: none;
+  }
+  .session-banner.show { display: block; }
+  .empty { color: var(--text-muted); font-size: 13px; padding: 20px; text-align: center; }
+  footer.note { text-align: center; font-size: 11.5px; color: var(--text-muted); margin-top: 24px; }
+
+  #copyModalBg {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 50;
+    align-items: center; justify-content: center;
+  }
+  #copyModalBg.show { display: flex; }
+  #copyModal {
+    background: var(--card); border-radius: 14px; padding: 20px; max-width: 560px; width: 90%;
+    max-height: 80vh; display: flex; flex-direction: column; gap: 10px;
+  }
+  #copyModal textarea { width: 100%; height: 220px; font-family: ui-monospace, monospace; font-size: 12px; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); }
+</style>
+</head>
+<body>
+<div class="viz-root wrap">
+
+  <header>
+    <div class="title-block">
+      <div class="title-icon">🛡️</div>
+      <div>
+        <h1>Exam Fraud &amp; Test Security — Research Tracker</h1>
+        <p class="sub">Daily research findings mapped to the Red Team (Mode 1) and Investigation (Mode 2) process flows</p>
+        <p class="meta" id="lastUpdatedMeta"></p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="ghost" id="themeToggle">🌙 Dark mode</button>
+      <button class="primary" id="openFormBtn">+ Add finding</button>
+    </div>
+  </header>
+
+  <div class="stats" id="statsRow"></div>
+
+  <section class="block">
+    <div class="block-head" data-target="timelineBody">
+      <h2>Report timeline <span class="hint">— click a point to jump to that entry</span></h2>
+      <span class="chev">▾</span>
+    </div>
+    <div class="block-body" id="timelineBody">
+      <div class="timeline-scroll"><div class="timeline" id="timeline"></div></div>
+    </div>
+  </section>
+
+  <section class="block" id="sevSection">
+    <div class="block-head" data-target="sevBody">
+      <h2>Severity breakdown <span class="hint">— flagged findings across all reports</span></h2>
+      <span class="chev">▾</span>
+    </div>
+    <div class="block-body" id="sevBody">
+      <div class="sev-bar-wrap">
+        <div class="sev-bar" id="sevBar"></div>
+        <div class="sev-legend" id="sevLegend"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head" data-target="registryBody">
+      <h2>Tracked sites &amp; services <span class="hint">— every fraud / cheating service identified so far</span></h2>
+      <span class="chev">▾</span>
+    </div>
+    <div class="block-body" id="registryBody">
+      <div class="registry-grid" id="registryGrid"></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head" data-target="formBody">
+      <h2>Add a new finding</h2>
+      <span class="chev">▾</span>
+    </div>
+    <div class="block-body collapsed" id="formBody">
+      <div class="session-banner" id="sessionBanner">
+        ⚠️ Entries added here only exist for this browser session — this page cannot save to disk. When you're done adding entries, click <strong>"Copy update for Claude"</strong> below and paste the text back into your chat with Claude so it can regenerate this artifact permanently.
+      </div>
+      <div class="form-grid">
+        <div>
+          <label>Date</label>
+          <input type="date" id="f-date">
+        </div>
+        <div>
+          <label>Mode</label>
+          <select id="f-mode">
+            <option value="1">Mode 1 — Red Team (proactive)</option>
+            <option value="2">Mode 2 — Investigation (reactive)</option>
+          </select>
+        </div>
+        <div class="full">
+          <label>Client(s) — comma separated</label>
+          <input type="text" id="f-clients" placeholder="e.g. Cambridge Linguaskill, GMAT">
+        </div>
+        <div class="full">
+          <label>Entry title</label>
+          <input type="text" id="f-title" placeholder="e.g. Daily Research Report — August 12, 2026">
+        </div>
+        <div class="full">
+          <label>Findings — one per line</label>
+          <textarea id="f-findings" rows="4" placeholder="One finding per line"></textarea>
+        </div>
+        <div class="full">
+          <label>Summary — one per line</label>
+          <textarea id="f-summary" rows="3" placeholder="One summary point per line"></textarea>
+        </div>
+        <div class="full">
+          <label>References — one per line, format: Label | URL</label>
+          <textarea id="f-refs" rows="2" placeholder="TestHelper | https://www.testhelper.org/..."></textarea>
+          <div class="form-hint">Leave blank if internal-only (e.g. telemetry analysis with no external links). Any new site/service referenced here is automatically added to the registry above.</div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="ghost" id="cancelFormBtn">Cancel</button>
+        <button class="primary" id="saveEntryBtn">Save finding</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="tabbar" id="tabbar">
+    <div class="tab active" data-mode="all">All entries</div>
+    <div class="tab" data-mode="1">Mode 1 · Red Team</div>
+    <div class="tab" data-mode="2">Mode 2 · Investigation</div>
+  </div>
+
+  <div class="filter-row">
+    <select id="clientFilter">
+      <option value="all">All clients</option>
+    </select>
+    <input type="search" id="searchBox" placeholder="Search findings...">
+    <button class="ghost" id="copyForClaudeBtn">📋 Copy update for Claude</button>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <div id="entriesList"></div>
+
+  <footer class="note">Internal use — Talview test security monitoring. Paste new daily reports to Claude to keep this tracker current.</footer>
+</div>
+
+<div id="copyModalBg">
+  <div id="copyModal">
+    <strong>Paste this into your chat with Claude</strong>
+    <div style="font-size:12.5px;color:var(--text-secondary)">Claude will regenerate the artifact so these entries are saved permanently.</div>
+    <textarea id="copyText" readonly></textarea>
+    <div class="form-actions">
+      <button class="ghost" id="closeCopyModal">Close</button>
+      <button class="primary" id="doCopyBtn">Copy to clipboard</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------------- Data ----------------
+// mode: 1 = Red Team (proactive), 2 = Investigation (reactive)
+const seedEntries = [
+  {
+    date: "2026-08-05", mode: 1, clients: ["Cambridge Linguaskill"],
+    title: "Daily Research Report — August 05, 2026",
+    findings: [
+      "No verified Linguaskill exam dumps, leaked question papers, or answer keys identified across Google, Reddit, Telegram, Facebook, or public file-sharing platforms.",
+      "Public discussions were mostly official prep resources, candidate experiences, and technical guidance.",
+      "TestHelper identified advertising a service claiming to provide a test taker for the Cambridge Linguaskill exam.",
+      "ExamSharks publishes proctoring guides, including content claiming compatibility with or methods to circumvent Talview Proview.",
+      "No publicly accessible screenshots of live Linguaskill exam content found."
+    ],
+    summary: [
+      "No confirmed leaked Linguaskill exam content or answer repositories identified.",
+      "Primary findings were websites advertising academic fraud services and proctoring-circumvention claims.",
+      "Recommend continued monitoring of exam-taking and proctoring-related services for Linguaskill / Talview Proview references."
+    ],
+    references: [
+      { label: "TestHelper — Hire a Linguaskill test taker", url: "https://www.testhelper.org/hire-a-linguaskill-test-taker-to-take-the-exam-for-you.html" },
+      { label: "ExamSharks — Proctoring guides", url: "https://examsharks.com/proctoring-guides" }
+    ]
+  },
+  {
+    date: "2026-08-06", mode: 1, clients: ["Cambridge Linguaskill"],
+    title: "Daily Research Report — August 06, 2026",
+    findings: [
+      "No verified Linguaskill exam dumps, leaked papers, answer keys, or unauthorized content identified across Google, Reddit, Telegram, Facebook, YouTube, or file-sharing platforms.",
+      "Results continued to consist primarily of official documentation and candidate experiences.",
+      "Examinator.cc reviewed as part of ongoing monitoring — no new Linguaskill-specific content or changes observed."
+    ],
+    summary: [
+      "No new findings identified during today's monitoring.",
+      "Examinator.cc remains on the monitoring list with no new developments this period."
+    ],
+    references: [
+      { label: "Examinator.cc (previously reported)", url: "https://examinator.cc/" }
+    ]
+  },
+  {
+    date: "2026-08-07", mode: 1, clients: ["Cambridge Linguaskill"],
+    title: "Daily Research Report — August 07, 2026",
+    findings: [
+      "Searched selected Cambridge Linguaskill institution codes (CA225, FR610, SG201, DE010, IT297, HK261, JP500, MX201, TW043) for institution-specific references to unauthorized content.",
+      "No relevant results, leaked materials, or suspicious activity identified using the searched institution codes.",
+      "Results primarily consisted of official Linguaskill resources and general exam discussions."
+    ],
+    summary: [
+      "No new findings during today's monitoring.",
+      "Institution-code searches did not surface indicators of leaked content or unauthorized distribution."
+    ],
+    references: []
+  },
+  {
+    date: "2026-08-10", mode: 1, clients: ["Cambridge Linguaskill", "GMAT"],
+    title: "Daily Research Report — August 10, 2026",
+    findings: [
+      "[Linguaskill] Targeted monitoring across DuckDuckGo, Brave Search, Chrome, and Reddit for cheating / third-party test-taking / proctoring-evasion services.",
+      "[Linguaskill] Examinator, TestHelper, and ExamSharks confirmed as the primary relevant sources for Linguaskill-related cheating or proctoring activity.",
+      "[Linguaskill] No verified exam dumps, leaked papers, or answer keys identified.",
+      "[GMAT] Reddit thread (r/testsdump) advertising remote assistance for proctored exams, explicitly including GMAT.",
+      "[GMAT] ExamHeroes identified — promotes remote support for online proctored exams, GMAT listed among supported categories.",
+      "[GMAT] Multiple Reddit threads reference HDMI splitters and kernel-level drivers as components of remote-access proxy testing setups used by organized cheating operators."
+    ],
+    summary: [
+      "Linguaskill: Examinator, TestHelper, ExamSharks remain the key sources to keep monitoring.",
+      "GMAT: Reddit ad, ExamHeroes, and HDMI-splitter / kernel-driver discussions are useful indicators of organized cheating methods targeting live-proctored exams."
+    ],
+    references: [
+      { label: "Reddit — r/testsdump remote assistance thread", url: "https://www.reddit.com/r/testsdump/comments/1vhcxue/a_guaranteed_success_on_any_proctored_exam_we/" },
+      { label: "ExamHeroes", url: "https://examheroes.cc/" }
+    ]
+  },
+  {
+    date: "2026-08-11", mode: 1, clients: ["Cambridge Linguaskill", "General Test Security"],
+    title: "Daily Research Report — August 11, 2026 (outreach + new sites)",
+    findings: [
+      "Attempted contact with HireExamHelp to understand process and pricing.",
+      "Attempted contact with ExamSharks — communication was limited to the website chatbot; direct WhatsApp contact could not be established.",
+      "Easy Code Interview identified as a new assessment-assistance website — advertises real-time AI assistance for online exams and technical interviews (HackerRank, CodeSignal, LeetCode), claims to remain undetected.",
+      "HireExamHelp advertises assistance with online and proctored examinations; outreach initiated for more detail on supported exams/platforms.",
+      "LinkJob.ai identified — AI-powered interview assistant offering real-time responses, coding assistance, screenshot analysis; claims a 'Stealth Mode' undetectable across meeting/coding-assessment platforms."
+    ],
+    summary: [
+      "Easy Code Interview is the main new finding today.",
+      "HireExamHelp and ExamSharks were contacted; ExamSharks required WhatsApp access for further direct communication, so only chatbot communication was possible."
+    ],
+    references: [
+      { label: "Easy Code Interview", url: "https://easy-code-interview.com/" },
+      { label: "HireExamHelp", url: "https://hireexamhelp.com/" },
+      { label: "ExamSharks", url: "https://examsharks.com/" },
+      { label: "LinkJob.ai", url: "https://linkjob.ai/" }
+    ]
+  },
+  {
+    date: "2026-08-11", mode: 2, clients: ["General Test Security"],
+    title: "Update on Suspicious Exam Session Patterns — Proctoring Data Analysis (Internal Telemetry)",
+    findings: [
+      { text: "Bot-like session flood from a single IP — one IP generated 8,000+ sessions (~7% of the entire dataset); 3 candidate IDs on this IP each had 700–1,000+ sessions, mostly overlapping in time with their own other sessions. Not possible for a real test-taker; points to automated/scripted traffic.", status: "critical" },
+      { text: "Same device used across many different candidates ('exam mill' pattern) — 300+ cases of the same IP, OS, browser, and browser version reused across 5+ completely different candidates, in some cases 100+ candidates on one device over several months. Consistent with a shared test-taking location/device sitting exams on behalf of multiple people.", status: "critical" },
+      { text: "Rotating-IP 'burst' sessions — separate candidate IDs generated 30–190 sessions within a few hours, each from a new/different IP (near 1-for-1 session-to-IP ratio). Consistent with VPN/proxy rotation to avoid IP-based detection.", status: "serious" },
+      { text: "Confirmed cross-border identity mismatch — ties to a manually-flagged IP/device match: proctor comments confirm candidates claiming different nationalities (Bangladeshi/Pakistani ID cards) sitting the exam from the same device/location in Malaysia. Only a fraction of sessions on that device have been reviewed; rest outstanding.", status: "critical" },
+      { text: "Impossible time overlaps on individual candidate accounts — several hundred candidate IDs show sessions overlapping their own other sessions by more than 10 minutes, suggesting the same account active in more than one session at once.", status: "serious" },
+      { text: "Multiple countries on a single candidate ID — 100+ candidate IDs logged in from more than one country; a handful show 5–10 different countries within a two-week span.", status: "warning" }
+    ],
+    summary: [
+      "Additional sessions found where IP address and environment settings matched across different candidates with the same device/peripherals — under further investigation.",
+      "Next step: restore video recordings for further investigation, as the patterns concentrate mainly in Jan–April sessions."
+    ],
+    references: []
+  }
+];
+
+// Known threat-service metadata, keyed by a substring of the URL's hostname.
+const siteMeta = {
+  "testhelper.org":          { category: "Test-taker-for-hire", status: "monitoring" },
+  "examsharks.com":          { category: "Proctoring circumvention + test-taker-for-hire", status: "contacted" },
+  "examinator.cc":           { category: "Test-taker-for-hire / proctoring circumvention", status: "monitoring" },
+  "reddit.com":              { category: "Marketplace ad (community forum)", status: "monitoring" },
+  "examheroes.cc":           { category: "Test-taker-for-hire", status: "monitoring" },
+  "easy-code-interview.com": { category: "AI exam / interview assistant (claims undetectable)", status: "new" },
+  "hireexamhelp.com":        { category: "Test-taker-for-hire", status: "contacted" },
+  "linkjob.ai":              { category: "AI interview assistant (“Stealth Mode” claim)", status: "monitoring" }
+};
+
+let entries = JSON.parse(JSON.stringify(seedEntries));
+let sessionAdds = [];
+let activeMode = "all";
+let activeClient = "all";
+let searchTerm = "";
+
+const clientColor = (name) => {
+  const map = {
+    "Cambridge Linguaskill": "var(--series-blue)",
+    "GMAT": "var(--series-orange)",
+    "General Test Security": "var(--series-aqua)"
+  };
+  return map[name] || "var(--series-violet)";
+};
+const statusColor = (s) => ({
+  good: "var(--status-good)", warning: "var(--status-warning)",
+  serious: "var(--status-serious)", critical: "var(--status-critical)"
+}[s] || "var(--status-warning)");
+const statusIcon = (s) => ({ good: "✓", warning: "◐", serious: "▲", critical: "⛔" }[s] || "◐");
+const statusLabel = (s) => ({ good: "No findings", warning: "Monitoring", serious: "Serious", critical: "Critical" }[s] || s);
+
+function fmtDate(d) {
+  const dt = new Date(d + "T00:00:00");
+  return dt.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+function daysAgo(d) {
+  const then = new Date(d + "T00:00:00").getTime();
+  const now = new Date(entries.reduce((m, e) => e.date > m ? e.date : m, entries[0].date) + "T00:00:00").getTime();
+  return Math.round((now - then) / 86400000);
+}
+
+function allClients() {
+  const set = new Set();
+  entries.forEach(e => e.clients.forEach(c => set.add(c)));
+  return Array.from(set);
+}
+
+function hostnameOf(url) {
+  try { return new URL(url).hostname.replace(/^www\./, ""); } catch (e) { return url; }
+}
+function matchMeta(hostname) {
+  for (const key in siteMeta) { if (hostname.includes(key)) return siteMeta[key]; }
+  return { category: "External reference", status: "monitoring" };
+}
+
+function buildRegistry() {
+  const map = new Map();
+  entries.forEach(e => {
+    (e.references || []).forEach(r => {
+      const host = hostnameOf(r.url);
+      if (!map.has(host)) {
+        map.set(host, { host, label: r.label, url: r.url, clients: new Set(), firstSeen: e.date, lastSeen: e.date, ...matchMeta(host) });
+      }
+      const item = map.get(host);
+      item.clients = new Set([...item.clients, ...e.clients]);
+      if (e.date < item.firstSeen) item.firstSeen = e.date;
+      if (e.date > item.lastSeen) item.lastSeen = e.date;
+    });
+  });
+  return Array.from(map.values()).sort((a, b) => b.lastSeen.localeCompare(a.lastSeen));
+}
+
+function renderRegistry() {
+  const items = buildRegistry();
+  const grid = document.getElementById("registryGrid");
+  if (!items.length) {
+    grid.innerHTML = `<div class="empty">No external sites or services referenced yet.</div>`;
+    return;
+  }
+  grid.innerHTML = items.map(it => {
+    const statusClass = it.status === "new" ? "st-new" : it.status === "contacted" ? "st-contacted" : "st-monitoring";
+    const statusText = it.status === "new" ? "NEW" : it.status === "contacted" ? "CONTACTED" : "MONITORING";
+    const clientChips = Array.from(it.clients).map(c => `<span class="badge" style="background:${clientColor(c)};font-size:9.5px;padding:2px 7px;">${c}</span>`).join("");
+    const seenRange = it.firstSeen === it.lastSeen ? fmtDate(it.firstSeen) : `${fmtDate(it.firstSeen)} → ${fmtDate(it.lastSeen)}`;
+    return `
+      <div class="reg-card">
+        <div class="reg-name"><a href="${it.url}" target="_blank" rel="noopener">${it.host}</a><span class="reg-status ${statusClass}">${statusText}</span></div>
+        <div class="reg-cat">${it.category}</div>
+        <div class="reg-meta">Seen: ${seenRange}</div>
+        <div class="reg-clients">${clientChips}</div>
+      </div>`;
+  }).join("");
+}
+
+function renderLegend() {
+  const clients = allClients();
+  document.getElementById("legend").innerHTML = clients.map(c =>
+    `<span><span class="dot" style="background:${clientColor(c)}"></span>${c}</span>`
+  ).join("");
+}
+
+function renderClientFilter() {
+  const sel = document.getElementById("clientFilter");
+  const clients = allClients();
+  const current = sel.value || "all";
+  sel.innerHTML = `<option value="all">All clients</option>` +
+    clients.map(c => `<option value="${c}">${c}</option>`).join("");
+  sel.value = clients.includes(current) ? current : "all";
+}
+
+function renderStats() {
+  const total = entries.length;
+  const critical = entries.filter(e => (e.findings || []).some(f => typeof f === "object" && f.status === "critical")).length;
+  const clientsCount = allClients().length;
+  const sitesCount = buildRegistry().length;
+  const lastDate = entries.reduce((max, e) => e.date > max ? e.date : max, entries[0]?.date || "");
+  const ago = daysAgo(lastDate);
+  const stats = [
+    { val: total, lbl: "Total entries", icon: "📄", accent: "var(--text-muted)" },
+    { val: clientsCount, lbl: "Clients tracked", icon: "🏢", accent: "var(--series-blue)" },
+    { val: sitesCount, lbl: "Sites &amp; services tracked", icon: "🔗", accent: "var(--series-orange)" },
+    { val: critical, lbl: "Entries with critical flags", icon: "⛔", accent: "var(--status-critical)" },
+    { val: ago === 0 ? "Today" : (ago + "d ago"), lbl: "Last report — " + fmtDate(lastDate), icon: "🕒", accent: "var(--series-aqua)" }
+  ];
+  document.getElementById("statsRow").innerHTML = stats.map(s =>
+    `<div class="stat-tile"><div class="accent" style="background:${s.accent}"></div><div class="icon">${s.icon}</div><div class="val">${s.val}</div><div class="lbl">${s.lbl}</div></div>`
+  ).join("");
+  document.getElementById("lastUpdatedMeta").textContent = `${total} entries logged · last report ${fmtDate(lastDate)} · Talview test security monitoring`;
+}
+
+function renderTimeline() {
+  const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+  const tl = document.getElementById("timeline");
+  tl.innerHTML = sorted.map((e, i) => {
+    const idx = entries.indexOf(e);
+    const color = e.mode === 1 ? "var(--series-violet)" : "var(--series-magenta)";
+    return `
+      <div class="tl-node" data-idx="${idx}" title="${e.title}">
+        <div class="tl-dot" style="background:${color}"></div>
+        <div class="tl-date">${fmtDate(e.date)}</div>
+        <div class="tl-label">${e.mode === 1 ? "Red Team" : "Investigation"}</div>
+      </div>`;
+  }).join("");
+  tl.querySelectorAll(".tl-node").forEach(node => {
+    node.addEventListener("click", () => {
+      const idx = node.dataset.idx;
+      activeMode = "all"; activeClient = "all"; searchTerm = "";
+      document.getElementById("searchBox").value = "";
+      document.getElementById("clientFilter").value = "all";
+      document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+      document.querySelector('.tab[data-mode="all"]').classList.add("active");
+      renderEntries();
+      requestAnimationFrame(() => {
+        const card = document.getElementById("entry-" + idx);
+        if (card) {
+          card.scrollIntoView({ behavior: "smooth", block: "center" });
+          card.classList.add("flash");
+          setTimeout(() => card.classList.remove("flash"), 1200);
+        }
+      });
+    });
+  });
+}
+
+function renderSeverity() {
+  const counts = { critical: 0, serious: 0, warning: 0, good: 0 };
+  entries.forEach(e => (e.findings || []).forEach(f => { if (typeof f === "object" && counts[f.status] !== undefined) counts[f.status]++; }));
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const section = document.getElementById("sevSection");
+  if (!total) { section.style.display = "none"; return; }
+  section.style.display = "";
+  const order = ["critical", "serious", "warning", "good"];
+  document.getElementById("sevBar").innerHTML = order.filter(k => counts[k] > 0).map(k =>
+    `<div class="sev-seg" style="width:${(counts[k] / total * 100)}%;background:${statusColor(k)}" title="${statusLabel(k)}: ${counts[k]}"></div>`
+  ).join("");
+  document.getElementById("sevLegend").innerHTML = order.filter(k => counts[k] > 0).map(k =>
+    `<div class="sev-legend-item"><span class="sw" style="background:${statusColor(k)}"></span>${statusIcon(k)} ${statusLabel(k)} — <b>${counts[k]}</b></div>`
+  ).join("");
+}
+
+function matchesFilters(e) {
+  if (activeMode !== "all" && String(e.mode) !== activeMode) return false;
+  if (activeClient !== "all" && !e.clients.includes(activeClient)) return false;
+  if (searchTerm) {
+    const hay = JSON.stringify(e).toLowerCase();
+    if (!hay.includes(searchTerm.toLowerCase())) return false;
+  }
+  return true;
+}
+
+function renderTabs() {
+  document.querySelector('.tab[data-mode="all"] .count-slot')?.remove();
+  document.getElementById("tabbar").querySelectorAll(".tab").forEach(t => {
+    const mode = t.dataset.mode;
+    const n = mode === "all" ? entries.length : entries.filter(e => String(e.mode) === mode).length;
+    const base = t.textContent.split(" (")[0];
+    t.innerHTML = `${base} <span class="count">(${n})</span>`;
+  });
+}
+
+function renderEntries() {
+  const list = document.getElementById("entriesList");
+  const filtered = entries.filter(matchesFilters).sort((a, b) => b.date.localeCompare(a.date) || 0);
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty">No entries match the current filters.</div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(e => {
+    const idx = entries.indexOf(e);
+    const modeColor = e.mode === 1 ? "var(--series-violet)" : "var(--series-magenta)";
+    const modeLabel = e.mode === 1 ? "MODE 1 · RED TEAM" : "MODE 2 · INVESTIGATION";
+    const clientBadges = e.clients.map(c => `<span class="badge" style="background:${clientColor(c)}">${c}</span>`).join("");
+    const findingsHtml = (e.findings || []).length
+      ? (typeof e.findings[0] === "object"
+          ? `<ol>${e.findings.map(f => `<li>${f.text}<span class="status-chip" style="background:${statusColor(f.status)}">${statusIcon(f.status)} ${statusLabel(f.status)}</span></li>`).join("")}</ol>`
+          : `<ul>${e.findings.map(f => `<li>${f}</li>`).join("")}</ul>`)
+      : `<div class="form-hint">No findings recorded.</div>`;
+    const summaryHtml = (e.summary || []).length ? `<ul>${e.summary.map(s => `<li>${s}</li>`).join("")}</ul>` : "";
+    const refsHtml = (e.references || []).length
+      ? `<h4 class="section-lbl">References</h4><div class="refs">${e.references.map(r => `<a href="${r.url}" target="_blank" rel="noopener">${r.label}</a>`).join("")}</div>`
+      : "";
+    return `
+      <div class="entry" id="entry-${idx}" style="border-left-color:${modeColor}">
+        <div class="entry-head">
+          <div>
+            <div class="entry-title">${e.title}</div>
+            <div class="entry-date">${fmtDate(e.date)} · ${daysAgo(e.date) === 0 ? "today" : daysAgo(e.date) + "d ago"}</div>
+          </div>
+          <div class="badges">
+            <span class="badge" style="background:${modeColor}">${modeLabel}</span>
+            ${clientBadges}
+          </div>
+        </div>
+        <h4 class="section-lbl">Findings</h4>
+        ${findingsHtml}
+        ${summaryHtml ? `<h4 class="section-lbl">Summary</h4>${summaryHtml}` : ""}
+        ${refsHtml}
+      </div>`;
+  }).join("");
+}
+
+function renderAll() {
+  renderStats();
+  renderLegend();
+  renderClientFilter();
+  renderTabs();
+  renderTimeline();
+  renderSeverity();
+  renderRegistry();
+  renderEntries();
+}
+
+// ---------------- Interactions ----------------
+document.querySelectorAll(".block-head").forEach(h => {
+  h.addEventListener("click", () => {
+    const body = document.getElementById(h.dataset.target);
+    body.classList.toggle("collapsed");
+    h.querySelector(".chev").style.transform = body.classList.contains("collapsed") ? "rotate(-90deg)" : "rotate(0deg)";
+  });
+});
+
+document.querySelectorAll(".tab").forEach(t => {
+  t.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+    t.classList.add("active");
+    activeMode = t.dataset.mode;
+    renderEntries();
+  });
+});
+document.getElementById("clientFilter").addEventListener("change", (e) => {
+  activeClient = e.target.value;
+  renderEntries();
+});
+document.getElementById("searchBox").addEventListener("input", (e) => {
+  searchTerm = e.target.value;
+  renderEntries();
+});
+
+document.getElementById("themeToggle").addEventListener("click", () => {
+  const root = document.documentElement;
+  const isDark = root.getAttribute("data-theme") === "dark";
+  root.setAttribute("data-theme", isDark ? "light" : "dark");
+  document.getElementById("themeToggle").textContent = isDark ? "🌙 Dark mode" : "☀️ Light mode";
+});
+
+document.getElementById("openFormBtn").addEventListener("click", () => {
+  document.getElementById("formBody").classList.remove("collapsed");
+  document.getElementById("sessionBanner").classList.add("show");
+  document.getElementById("formBody").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+document.getElementById("cancelFormBtn").addEventListener("click", () => {
+  document.getElementById("formBody").classList.add("collapsed");
+});
+
+document.getElementById("saveEntryBtn").addEventListener("click", () => {
+  const date = document.getElementById("f-date").value;
+  const mode = parseInt(document.getElementById("f-mode").value, 10);
+  const clients = document.getElementById("f-clients").value.split(",").map(s => s.trim()).filter(Boolean);
+  const title = document.getElementById("f-title").value.trim();
+  const findings = document.getElementById("f-findings").value.split("\n").map(s => s.trim()).filter(Boolean);
+  const summary = document.getElementById("f-summary").value.split("\n").map(s => s.trim()).filter(Boolean);
+  const references = document.getElementById("f-refs").value.split("\n").map(s => s.trim()).filter(Boolean).map(line => {
+    const [label, url] = line.split("|").map(s => s.trim());
+    return { label: label || url, url: url || "#" };
+  });
+
+  if (!date || !title) {
+    alert("Please fill in at least a date and a title.");
+    return;
+  }
+  const newEntry = { date, mode, clients: clients.length ? clients : ["Unspecified"], title, findings, summary, references };
+  entries.push(newEntry);
+  sessionAdds.push(newEntry);
+
+  ["f-date", "f-clients", "f-title", "f-findings", "f-summary", "f-refs"].forEach(id => document.getElementById(id).value = "");
+  document.getElementById("formBody").classList.add("collapsed");
+  renderAll();
+});
+
+document.getElementById("copyForClaudeBtn").addEventListener("click", () => {
+  const source = sessionAdds.length ? sessionAdds : entries;
+  const lines = source.map(e => {
+    const clientsStr = e.clients.join(", ");
+    const findingsStr = (e.findings || []).map(f => "- " + (typeof f === "object" ? f.text + ` [${f.status}]` : f)).join("\n");
+    const summaryStr = (e.summary || []).map(s => "- " + s).join("\n");
+    const refsStr = (e.references || []).map(r => `- ${r.label}: ${r.url}`).join("\n");
+    return `### ${e.title}\nDate: ${e.date}\nMode: ${e.mode}\nClients: ${clientsStr}\n\nFindings:\n${findingsStr || "(none)"}\n\nSummary:\n${summaryStr || "(none)"}\n\nReferences:\n${refsStr || "(none)"}`;
+  }).join("\n\n---\n\n");
+  const header = sessionAdds.length
+    ? "Please update my fraud research tracker artifact with the following new entries:\n\n"
+    : "Here is the full current content of my fraud research tracker (no new entries were added this session):\n\n";
+  document.getElementById("copyText").value = header + lines;
+  document.getElementById("copyModalBg").classList.add("show");
+});
+document.getElementById("closeCopyModal").addEventListener("click", () => {
+  document.getElementById("copyModalBg").classList.remove("show");
+});
+document.getElementById("doCopyBtn").addEventListener("click", () => {
+  const ta = document.getElementById("copyText");
+  ta.select();
+  document.execCommand("copy");
+  const btn = document.getElementById("doCopyBtn");
+  const orig = btn.textContent;
+  btn.textContent = "Copied ✓";
+  setTimeout(() => btn.textContent = orig, 1500);
+});
+
+renderAll();
+</script>
+</body>
+</html>
