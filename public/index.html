@@ -252,6 +252,26 @@
   .form-actions { display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; }
   .empty { color: var(--text-muted); font-size: 13px; padding: 20px; text-align: center; }
   footer.note { text-align: center; font-size: 11.5px; color: var(--text-muted); margin-top: 24px; }
+
+  /* ---------- Admin delete / restore ---------- */
+  .icon-btn {
+    background: transparent; border: 1px solid var(--border); border-radius: 7px;
+    width: 26px; height: 26px; padding: 0; font-size: 13px; line-height: 1;
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .icon-btn:hover { background: color-mix(in srgb, var(--status-critical) 12%, var(--card)); border-color: var(--status-critical); }
+  .restore-list { display: flex; flex-direction: column; gap: 8px; }
+  .restore-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    border: 1px solid var(--border); border-radius: 9px; padding: 9px 12px; background: var(--surface-1);
+    font-size: 12.5px;
+  }
+  .restore-row .r-title { font-weight: 600; }
+  .restore-row .r-meta { color: var(--text-muted); font-size: 11.5px; }
+  .admin-badge {
+    font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+    background: var(--status-critical); color: #fff; margin-left: 8px;
+  }
 </style>
 </head>
 <body>
@@ -317,6 +337,19 @@
     </div>
     <div class="block-body" id="registryBody">
       <div class="registry-grid" id="registryGrid"></div>
+    </div>
+  </section>
+
+  <section class="block" id="restoreSection" style="display:none;">
+    <div class="block-head" data-target="restoreBody">
+      <h2>Recently deleted <span class="admin-badge">ADMIN</span> <span class="hint">— nothing here was removed from the database</span></h2>
+      <span class="chev">▾</span>
+    </div>
+    <div class="block-body collapsed" id="restoreBody">
+      <h4 class="section-lbl">Deleted findings</h4>
+      <div class="restore-list" id="deletedEntriesList"><div class="empty">Loading…</div></div>
+      <h4 class="section-lbl" style="margin-top:16px;">Hidden sites &amp; services</h4>
+      <div class="restore-list" id="hiddenSitesList"><div class="empty">Loading…</div></div>
     </div>
   </section>
 
@@ -417,6 +450,8 @@ let entries = [];
 let activeMode = "all";
 let activeClient = "all";
 let searchTerm = "";
+let currentRole = null;
+let hiddenSites = new Set();
 
 const clientColor = (name) => {
   const map = {
@@ -463,6 +498,7 @@ function buildRegistry() {
   entries.forEach(e => {
     (e.references || []).forEach(r => {
       const host = hostnameOf(r.url);
+      if (hiddenSites.has(host)) return;
       if (!map.has(host)) {
         map.set(host, { host, label: r.label, url: r.url, clients: new Set(), firstSeen: e.date, lastSeen: e.date, ...matchMeta(host) });
       }
@@ -487,9 +523,12 @@ function renderRegistry() {
     const statusText = it.status === "new" ? "NEW" : it.status === "contacted" ? "CONTACTED" : "MONITORING";
     const clientChips = Array.from(it.clients).map(c => `<span class="badge" style="background:${clientColor(c)};font-size:9.5px;padding:2px 7px;">${escapeHtml(c)}</span>`).join("");
     const seenRange = it.firstSeen === it.lastSeen ? fmtDate(it.firstSeen) : `${fmtDate(it.firstSeen)} → ${fmtDate(it.lastSeen)}`;
+    const deleteBtn = currentRole === "admin"
+      ? `<button class="icon-btn site-delete-btn" data-host="${escapeHtml(it.host)}" title="Hide this site">🗑</button>`
+      : "";
     return `
       <div class="reg-card">
-        <div class="reg-name"><a href="${safeUrl(it.url)}" target="_blank" rel="noopener">${escapeHtml(it.host)}</a><span class="reg-status ${statusClass}">${statusText}</span></div>
+        <div class="reg-name"><a href="${safeUrl(it.url)}" target="_blank" rel="noopener">${escapeHtml(it.host)}</a><span style="display:flex;align-items:center;gap:6px;"><span class="reg-status ${statusClass}">${statusText}</span>${deleteBtn}</span></div>
         <div class="reg-cat">${escapeHtml(it.category)}</div>
         <div class="reg-meta">Seen: ${seenRange}</div>
         <div class="reg-clients">${clientChips}</div>
@@ -623,6 +662,9 @@ function renderEntries() {
     const refsHtml = (e.references || []).length
       ? `<h4 class="section-lbl">References</h4><div class="refs">${e.references.map(r => `<a href="${safeUrl(r.url)}" target="_blank" rel="noopener">${escapeHtml(r.label)}</a>`).join("")}</div>`
       : "";
+    const deleteBtn = currentRole === "admin"
+      ? `<button class="icon-btn entry-delete-btn" data-id="${e.id}" title="Delete this finding">🗑</button>`
+      : "";
     return `
       <div class="entry" id="entry-${idx}" style="border-left-color:${modeColor}">
         <div class="entry-head">
@@ -633,6 +675,7 @@ function renderEntries() {
           <div class="badges">
             <span class="badge" style="background:${modeColor}">${modeLabel}</span>
             ${clientBadges}
+            ${deleteBtn}
           </div>
         </div>
         <h4 class="section-lbl">Findings</h4>
@@ -652,7 +695,102 @@ function renderAll() {
   renderSeverity();
   renderRegistry();
   renderEntries();
+  renderAdminUI();
 }
+
+// ---------------- Admin: restore panel ----------------
+function renderAdminUI() {
+  const section = document.getElementById("restoreSection");
+  section.style.display = currentRole === "admin" ? "" : "none";
+}
+
+async function refreshRestorePanel() {
+  if (currentRole !== "admin") return;
+  const deletedList = document.getElementById("deletedEntriesList");
+  const hiddenList = document.getElementById("hiddenSitesList");
+  try {
+    const [deletedEntries, hidden] = await Promise.all([
+      fetch("/api/entries/deleted").then(r => r.json()),
+      fetch("/api/hidden-sites").then(r => r.json())
+    ]);
+    deletedList.innerHTML = deletedEntries.length
+      ? deletedEntries.map(e => `
+        <div class="restore-row">
+          <div><div class="r-title">${escapeHtml(e.title)}</div><div class="r-meta">${fmtDate(e.date)}</div></div>
+          <button class="ghost restore-entry-btn" data-id="${e.id}">Restore</button>
+        </div>`).join("")
+      : `<div class="empty">Nothing deleted.</div>`;
+    hiddenList.innerHTML = hidden.length
+      ? hidden.map(host => `
+        <div class="restore-row">
+          <div class="r-title">${escapeHtml(host)}</div>
+          <button class="ghost restore-site-btn" data-host="${escapeHtml(host)}">Restore</button>
+        </div>`).join("")
+      : `<div class="empty">No hidden sites.</div>`;
+  } catch (e) {
+    deletedList.innerHTML = `<div class="empty">Could not load.</div>`;
+    hiddenList.innerHTML = `<div class="empty">Could not load.</div>`;
+  }
+}
+
+document.getElementById("entriesList").addEventListener("click", async (e) => {
+  const btn = e.target.closest(".entry-delete-btn");
+  if (!btn) return;
+  if (!confirm("Delete this finding? It will be hidden from the tracker but kept in the database, and can be restored from \"Recently deleted.\"")) return;
+  const id = btn.dataset.id;
+  try {
+    const res = await fetch(`/api/entries/${id}`, { method: "DELETE" });
+    if (!res.ok) { alert("Could not delete this finding."); return; }
+    entries = entries.filter(en => String(en.id) !== String(id));
+    renderAll();
+    refreshRestorePanel();
+  } catch (err) {
+    alert("Could not reach the server.");
+  }
+});
+
+document.getElementById("registryGrid").addEventListener("click", async (e) => {
+  const btn = e.target.closest(".site-delete-btn");
+  if (!btn) return;
+  const host = btn.dataset.host;
+  if (!confirm(`Hide "${host}" from the tracked sites list? It will stay in the database and can be restored from "Recently deleted."`)) return;
+  try {
+    const res = await fetch(`/api/sites/${encodeURIComponent(host)}`, { method: "DELETE" });
+    if (!res.ok) { alert("Could not hide this site."); return; }
+    hiddenSites.add(host);
+    renderAll();
+    refreshRestorePanel();
+  } catch (err) {
+    alert("Could not reach the server.");
+  }
+});
+
+document.getElementById("restoreBody").addEventListener("click", async (e) => {
+  const entryBtn = e.target.closest(".restore-entry-btn");
+  const siteBtn = e.target.closest(".restore-site-btn");
+  if (entryBtn) {
+    try {
+      const res = await fetch(`/api/entries/${entryBtn.dataset.id}/restore`, { method: "POST" });
+      if (!res.ok) { alert("Could not restore this finding."); return; }
+      const restored = await res.json();
+      entries.push(restored);
+      renderAll();
+      refreshRestorePanel();
+    } catch (err) {
+      alert("Could not reach the server.");
+    }
+  } else if (siteBtn) {
+    try {
+      const res = await fetch(`/api/sites/${encodeURIComponent(siteBtn.dataset.host)}/restore`, { method: "POST" });
+      if (!res.ok) { alert("Could not restore this site."); return; }
+      hiddenSites.delete(siteBtn.dataset.host);
+      renderAll();
+      refreshRestorePanel();
+    } catch (err) {
+      alert("Could not reach the server.");
+    }
+  }
+});
 
 // ---------------- Auth + data loading ----------------
 function showLogin(message) {
@@ -662,12 +800,17 @@ function showLogin(message) {
 }
 
 async function loadEntriesAndShowApp() {
-  const res = await fetch("/api/entries");
-  if (!res.ok) { showLogin(); return; }
-  entries = await res.json();
+  const [entriesRes, hiddenRes] = await Promise.all([
+    fetch("/api/entries"),
+    fetch("/api/hidden-sites")
+  ]);
+  if (!entriesRes.ok || !hiddenRes.ok) { showLogin(); return; }
+  entries = await entriesRes.json();
+  hiddenSites = new Set(await hiddenRes.json());
   document.getElementById("loginOverlay").style.display = "none";
   document.getElementById("appRoot").style.display = "";
   renderAll();
+  if (currentRole === "admin") refreshRestorePanel();
 }
 
 async function checkAuthAndLoad() {
@@ -675,6 +818,7 @@ async function checkAuthAndLoad() {
     const meRes = await fetch("/api/me");
     const me = await meRes.json();
     if (me.authed) {
+      currentRole = me.role;
       await loadEntriesAndShowApp();
     } else {
       showLogin();
@@ -695,6 +839,8 @@ async function doLogin() {
       body: JSON.stringify({ password })
     });
     if (res.ok) {
+      const data = await res.json();
+      currentRole = data.role;
       document.getElementById("loginPassword").value = "";
       await loadEntriesAndShowApp();
     } else {
@@ -713,6 +859,8 @@ document.getElementById("loginPassword").addEventListener("keydown", (e) => {
 document.getElementById("logoutBtn").addEventListener("click", async () => {
   await fetch("/api/logout", { method: "POST" });
   entries = [];
+  hiddenSites = new Set();
+  currentRole = null;
   showLogin();
 });
 

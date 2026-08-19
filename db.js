@@ -18,6 +18,13 @@ async function init() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+  await pool.query(`ALTER TABLE entries ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT FALSE`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS hidden_sites (
+      host TEXT PRIMARY KEY,
+      hidden_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
 
   // Seed initial entries only when the table is empty.
   const { rows } = await pool.query("SELECT COUNT(*)::int AS n FROM entries");
@@ -153,13 +160,21 @@ function rowToEntry(row) {
     title: row.title,
     findings: row.findings,
     summary: row.summary,
-    references: row.references_json
+    references: row.references_json,
+    isDeleted: row.is_deleted
   };
 }
 
 async function getAllEntries() {
   const { rows } = await pool.query(
-    "SELECT * FROM entries ORDER BY date DESC, id DESC"
+    "SELECT * FROM entries WHERE is_deleted = FALSE ORDER BY date DESC, id DESC"
+  );
+  return rows.map(rowToEntry);
+}
+
+async function getDeletedEntries() {
+  const { rows } = await pool.query(
+    "SELECT * FROM entries WHERE is_deleted = TRUE ORDER BY date DESC, id DESC"
   );
   return rows.map(rowToEntry);
 }
@@ -175,4 +190,48 @@ async function insertEntry(e) {
   return rowToEntry(rows[0]);
 }
 
-module.exports = { init, getAllEntries, insertEntry };
+async function softDeleteEntry(id) {
+  const { rows } = await pool.query(
+    "UPDATE entries SET is_deleted = TRUE WHERE id = $1 RETURNING *",
+    [id]
+  );
+  return rows[0] ? rowToEntry(rows[0]) : null;
+}
+
+async function restoreEntry(id) {
+  const { rows } = await pool.query(
+    "UPDATE entries SET is_deleted = FALSE WHERE id = $1 RETURNING *",
+    [id]
+  );
+  return rows[0] ? rowToEntry(rows[0]) : null;
+}
+
+async function getHiddenSites() {
+  const { rows } = await pool.query(
+    "SELECT host FROM hidden_sites ORDER BY hidden_at DESC"
+  );
+  return rows.map(r => r.host);
+}
+
+async function hideSite(host) {
+  await pool.query(
+    "INSERT INTO hidden_sites (host) VALUES ($1) ON CONFLICT (host) DO NOTHING",
+    [host]
+  );
+}
+
+async function restoreSite(host) {
+  await pool.query("DELETE FROM hidden_sites WHERE host = $1", [host]);
+}
+
+module.exports = {
+  init,
+  getAllEntries,
+  getDeletedEntries,
+  insertEntry,
+  softDeleteEntry,
+  restoreEntry,
+  getHiddenSites,
+  hideSite,
+  restoreSite
+};
