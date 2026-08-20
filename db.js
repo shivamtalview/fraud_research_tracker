@@ -190,6 +190,38 @@ async function insertEntry(e) {
   return rowToEntry(rows[0]);
 }
 
+// Fields an admin edit is allowed to touch, with the transform needed to get
+// the JS value into the shape pg expects for that column.
+const UPDATABLE_FIELDS = {
+  date: (v) => v,
+  mode: (v) => v,
+  title: (v) => v,
+  clients: (v) => JSON.stringify(v),
+  findings: (v) => JSON.stringify(v),
+  summary: (v) => JSON.stringify(v),
+  references: (v) => JSON.stringify(v)
+};
+// Field name -> column name, where the two differ.
+const FIELD_COLUMN = { references: "references_json" };
+
+async function updateEntry(id, fields) {
+  const sets = [];
+  const values = [];
+  for (const [key, value] of Object.entries(fields || {})) {
+    const transform = UPDATABLE_FIELDS[key];
+    if (!transform) continue;
+    values.push(transform(value));
+    sets.push(`${FIELD_COLUMN[key] || key} = $${values.length}`);
+  }
+  if (!sets.length) return null;
+  values.push(id);
+  const { rows } = await pool.query(
+    `UPDATE entries SET ${sets.join(", ")} WHERE id = $${values.length} RETURNING *`,
+    values
+  );
+  return rows[0] ? rowToEntry(rows[0]) : null;
+}
+
 async function softDeleteEntry(id) {
   const { rows } = await pool.query(
     "UPDATE entries SET is_deleted = TRUE WHERE id = $1 RETURNING *",
@@ -229,6 +261,7 @@ module.exports = {
   getAllEntries,
   getDeletedEntries,
   insertEntry,
+  updateEntry,
   softDeleteEntry,
   restoreEntry,
   getHiddenSites,

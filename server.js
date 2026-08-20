@@ -7,6 +7,7 @@ const {
   getAllEntries,
   getDeletedEntries,
   insertEntry,
+  updateEntry,
   softDeleteEntry,
   restoreEntry,
   getHiddenSites,
@@ -116,6 +117,48 @@ app.post("/api/entries", requireAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to save entry." });
+  }
+});
+
+app.patch("/api/entries/:id", requireAuth, requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid entry id." });
+
+  const body = req.body || {};
+  const fields = {};
+  if (body.date !== undefined) {
+    const date = String(body.date);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ error: "date must be in YYYY-MM-DD format." });
+    }
+    fields.date = date;
+  }
+  if (body.mode !== undefined) fields.mode = body.mode === 2 ? 2 : 1;
+  if (body.title !== undefined) {
+    const title = String(body.title).trim();
+    if (!title) return res.status(400).json({ error: "title cannot be empty." });
+    fields.title = title;
+  }
+  if (body.clients !== undefined) {
+    fields.clients = Array.isArray(body.clients) && body.clients.length
+      ? body.clients.map(String)
+      : ["Unspecified"];
+  }
+  if (body.findings !== undefined) fields.findings = Array.isArray(body.findings) ? body.findings : [];
+  if (body.summary !== undefined) fields.summary = Array.isArray(body.summary) ? body.summary : [];
+  if (body.references !== undefined) fields.references = Array.isArray(body.references) ? body.references : [];
+
+  if (!Object.keys(fields).length) {
+    return res.status(400).json({ error: "No updatable fields provided." });
+  }
+
+  try {
+    const updated = await updateEntry(id, fields);
+    if (!updated) return res.status(404).json({ error: "Entry not found." });
+    res.json(updated);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update entry." });
   }
 });
 

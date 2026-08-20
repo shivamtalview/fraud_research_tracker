@@ -249,6 +249,17 @@
   }
   .form-grid input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--date-icon-filter, none); cursor: pointer; }
   .form-hint { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+  .form-hint code {
+    font-size: 11px; padding: 1px 4px; border-radius: 4px;
+    background: color-mix(in srgb, var(--border) 45%, var(--card));
+    border: 1px solid var(--border); white-space: nowrap;
+  }
+  .editing-note {
+    font-size: 12px; font-weight: 600; margin-bottom: 12px;
+    padding: 8px 11px; border-radius: 7px;
+    background: color-mix(in srgb, var(--series-violet) 12%, var(--card));
+    border: 1px solid color-mix(in srgb, var(--series-violet) 40%, var(--border));
+  }
   .form-actions { display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; }
   .empty { color: var(--text-muted); font-size: 13px; padding: 20px; text-align: center; }
   footer.note { text-align: center; font-size: 11.5px; color: var(--text-muted); margin-top: 24px; }
@@ -355,10 +366,11 @@
 
   <section class="block">
     <div class="block-head" data-target="formBody">
-      <h2>Add a new finding</h2>
+      <h2 id="formTitle">Add a new finding</h2>
       <span class="chev">▾</span>
     </div>
     <div class="block-body collapsed" id="formBody">
+      <div class="editing-note" id="editingNote" style="display:none"></div>
       <div class="form-grid">
         <div>
           <label>Date</label>
@@ -381,7 +393,13 @@
         </div>
         <div class="full">
           <label>Findings — one per line</label>
-          <textarea id="f-findings" rows="4" placeholder="One finding per line"></textarea>
+          <textarea id="f-findings" rows="4" placeholder="One finding per line. End a line with ⛔ Critical, ▲ Serious or ◐ Monitoring to flag it."></textarea>
+          <div class="form-hint">
+            To flag a finding's severity, end the line with a marker:
+            <code>⛔ Critical</code>, <code>▲ Serious</code>, <code>◐ Monitoring</code> or <code>✓ No findings</code>.
+            <code>[critical]</code> / <code>[serious]</code> / <code>[monitoring]</code> work too.
+            Flagged findings feed the severity breakdown and the “entries with critical flags” count; unflagged lines stay plain.
+          </div>
         </div>
         <div class="full">
           <label>Summary — one per line</label>
@@ -435,16 +453,74 @@ function safeUrl(url) {
 }
 
 // Known threat-service metadata, keyed by a substring of the URL's hostname.
+// `aliases` are the prose spellings used in findings/summary text, so a service
+// mentioned in a later report updates its "Seen" range even when that report
+// did not re-list it under References.
 const siteMeta = {
-  "testhelper.org":          { category: "Test-taker-for-hire", status: "monitoring" },
-  "examsharks.com":          { category: "Proctoring circumvention + test-taker-for-hire", status: "contacted" },
-  "examinator.cc":           { category: "Test-taker-for-hire / proctoring circumvention", status: "monitoring" },
-  "reddit.com":              { category: "Marketplace ad (community forum)", status: "monitoring" },
-  "examheroes.cc":           { category: "Test-taker-for-hire", status: "monitoring" },
-  "easy-code-interview.com": { category: "AI exam / interview assistant (claims undetectable)", status: "new" },
-  "hireexamhelp.com":        { category: "Test-taker-for-hire", status: "contacted" },
-  "linkjob.ai":              { category: "AI interview assistant (“Stealth Mode” claim)", status: "monitoring" }
+  "testhelper.org":          { category: "Test-taker-for-hire", status: "monitoring", aliases: [/test\s?helper/i] },
+  "examsharks.com":          { category: "Proctoring circumvention + test-taker-for-hire", status: "contacted", aliases: [/exam\s?sharks/i] },
+  "examinator.cc":           { category: "Test-taker-for-hire / proctoring circumvention", status: "monitoring", aliases: [/examinator/i] },
+  // Deliberately narrow: a bare "Reddit" in a list of platforms searched is not a sighting.
+  "reddit.com":              { category: "Marketplace ad (community forum)", status: "monitoring", aliases: [/r\/[a-z0-9_]+/i, /reddit\s+(?:thread|ad|post|advert)/i] },
+  "examheroes.cc":           { category: "Test-taker-for-hire", status: "monitoring", aliases: [/exam\s?heroes/i] },
+  "easy-code-interview.com": { category: "AI exam / interview assistant (claims undetectable)", status: "new", aliases: [/easy[\s-]?code[\s-]?interview/i] },
+  "hireexamhelp.com":        { category: "Test-taker-for-hire + claimed proctoring bypass", status: "contacted", aliases: [/hire\s?exam\s?help/i] },
+  "linkjob.ai":              { category: "AI interview assistant (“Stealth Mode” claim)", status: "monitoring", aliases: [/linkjob/i] },
+  "bypassmyexam.com":        { category: "Proxy testing / test-taker-for-hire", status: "monitoring", aliases: [/bypass\s?my\s?exam/i] },
+  "takemyproctoredexamforme.com": { category: "Proxy testing / test-taker-for-hire", status: "monitoring", aliases: [/take\s?my\s?proctored\s?exam\s?for\s?me/i] }
 };
+
+// ---------------- Finding severity ----------------
+// A finding is stored either as a plain string, or as { text, status } where
+// status is one of critical | serious | warning | good. The entry form lets an
+// analyst set the status by ending the line with a marker, e.g.
+//   "Provider confirmed Linguaskill capability. ⛔ Critical"
+//   "Two new proxy providers identified. [serious]"
+const SEVERITY_WORDS = {
+  critical: "critical", crit: "critical",
+  serious: "serious", major: "serious",
+  monitoring: "warning", monitor: "warning", warning: "warning", watch: "warning",
+  good: "good", ok: "good", clear: "good", "no findings": "good"
+};
+const SEVERITY_ICONS = { "⛔": "critical", "▲": "serious", "◐": "warning", "✓": "good" };
+const SEVERITY_ORDER = ["critical", "serious", "warning", "good"];
+
+// "text ⛔ Critical" / "text ⛔" / "text [critical]" / "text — Critical" -> { text, status }
+function parseFinding(line) {
+  const raw = String(line).trim();
+  if (!raw) return raw;
+
+  const attempts = [
+    // bracketed tag: [critical] or (critical)
+    { re: /[\s ]*[[(]\s*([A-Za-z ]+?)\s*[\])]\s*$/, word: 1, icon: null },
+    // icon, optionally followed by its label
+    { re: /[\s ]*([⛔▲◐✓])\s*([A-Za-z ]*)$/, word: 2, icon: 1 },
+    // trailing dash + label
+    { re: /[\s ]*[—–-]\s*(critical|serious|monitoring|warning|good)\s*$/i, word: 1, icon: null }
+  ];
+
+  for (const a of attempts) {
+    const m = raw.match(a.re);
+    if (!m) continue;
+    const word = (m[a.word] || "").trim().toLowerCase();
+    const status = SEVERITY_WORDS[word] || (a.icon ? SEVERITY_ICONS[m[a.icon]] : null);
+    if (!status) continue;
+    const text = raw.slice(0, m.index).trim();
+    if (!text) continue; // a line that is only a marker isn't a finding
+    return { text, status };
+  }
+  return raw;
+}
+
+// Inverse of parseFinding, for pre-filling the edit form.
+function serialiseFinding(f) {
+  if (!f || typeof f !== "object") return String(f || "");
+  if (!f.status) return String(f.text || "");
+  return `${f.text} ${statusIcon(f.status)} ${statusLabel(f.status)}`;
+}
+
+const findingText = (f) => (f && typeof f === "object" ? String(f.text || "") : String(f || ""));
+const findingStatus = (f) => (f && typeof f === "object" ? f.status : null);
 
 let entries = [];
 let activeMode = "all";
@@ -452,6 +528,7 @@ let activeClient = "all";
 let searchTerm = "";
 let currentRole = null;
 let hiddenSites = new Set();
+let editingId = null;
 
 const clientColor = (name) => {
   const map = {
@@ -493,8 +570,28 @@ function matchMeta(hostname) {
   return { category: "External reference", status: "monitoring" };
 }
 
+// All prose in an entry that could name a tracked service.
+function entryProse(e) {
+  return [
+    e.title || "",
+    ...(e.findings || []).map(findingText),
+    ...(e.summary || []).map(s => (s && typeof s === "object" ? String(s.text || "") : String(s || "")))
+  ].join("\n");
+}
+
 function buildRegistry() {
   const map = new Map();
+
+  const touch = (host, e) => {
+    const item = map.get(host);
+    if (!item) return;
+    item.clients = new Set([...item.clients, ...e.clients]);
+    if (e.date < item.firstSeen) item.firstSeen = e.date;
+    if (e.date > item.lastSeen) item.lastSeen = e.date;
+  };
+
+  // Pass 1: a site enters the registry through an entry's References, which is
+  // the only place a real URL for it exists.
   entries.forEach(e => {
     (e.references || []).forEach(r => {
       const host = hostnameOf(r.url);
@@ -502,12 +599,28 @@ function buildRegistry() {
       if (!map.has(host)) {
         map.set(host, { host, label: r.label, url: r.url, clients: new Set(), firstSeen: e.date, lastSeen: e.date, ...matchMeta(host) });
       }
-      const item = map.get(host);
-      item.clients = new Set([...item.clients, ...e.clients]);
-      if (e.date < item.firstSeen) item.firstSeen = e.date;
-      if (e.date > item.lastSeen) item.lastSeen = e.date;
+      touch(host, e);
     });
   });
+
+  // Pass 2: re-sightings. A service discussed in a later report's findings or
+  // summary extends its Seen range even if that report didn't re-list the link.
+  const aliased = Array.from(map.keys())
+    .map(host => {
+      const meta = Object.entries(siteMeta).find(([key]) => host.includes(key));
+      return { host, patterns: (meta && meta[1].aliases) || [] };
+    })
+    .filter(x => x.patterns.length);
+
+  if (aliased.length) {
+    entries.forEach(e => {
+      const prose = entryProse(e);
+      aliased.forEach(({ host, patterns }) => {
+        if (patterns.some(re => re.test(prose))) touch(host, e);
+      });
+    });
+  }
+
   return Array.from(map.values()).sort((a, b) => b.lastSeen.localeCompare(a.lastSeen));
 }
 
@@ -554,7 +667,7 @@ function renderClientFilter() {
 
 function renderStats() {
   const total = entries.length;
-  const critical = entries.filter(e => (e.findings || []).some(f => typeof f === "object" && f.status === "critical")).length;
+  const critical = entries.filter(e => (e.findings || []).some(f => findingStatus(f) === "critical")).length;
   const clientsCount = allClients().length;
   const sitesCount = buildRegistry().length;
   const lastDate = entries.reduce((max, e) => e.date > max ? e.date : max, entries[0]?.date || "");
@@ -608,12 +721,15 @@ function renderTimeline() {
 
 function renderSeverity() {
   const counts = { critical: 0, serious: 0, warning: 0, good: 0 };
-  entries.forEach(e => (e.findings || []).forEach(f => { if (typeof f === "object" && counts[f.status] !== undefined) counts[f.status]++; }));
+  entries.forEach(e => (e.findings || []).forEach(f => {
+    const s = findingStatus(f);
+    if (s && counts[s] !== undefined) counts[s]++;
+  }));
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   const section = document.getElementById("sevSection");
   if (!total) { section.style.display = "none"; return; }
   section.style.display = "";
-  const order = ["critical", "serious", "warning", "good"];
+  const order = SEVERITY_ORDER;
   document.getElementById("sevBar").innerHTML = order.filter(k => counts[k] > 0).map(k =>
     `<div class="sev-seg" style="width:${(counts[k] / total * 100)}%;background:${statusColor(k)}" title="${statusLabel(k)}: ${counts[k]}"></div>`
   ).join("");
@@ -653,17 +769,28 @@ function renderEntries() {
     const modeColor = e.mode === 1 ? "var(--series-violet)" : "var(--series-magenta)";
     const modeLabel = e.mode === 1 ? "MODE 1 · RED TEAM" : "MODE 2 · INVESTIGATION";
     const clientBadges = e.clients.map(c => `<span class="badge" style="background:${clientColor(c)}">${escapeHtml(c)}</span>`).join("");
+    // Findings may mix flagged ({text, status}) and unflagged (plain string)
+    // items, so decide the chip per item rather than from the first one.
+    const anyFlagged = (e.findings || []).some(f => findingStatus(f));
+    const listTag = anyFlagged ? "ol" : "ul";
     const findingsHtml = (e.findings || []).length
-      ? (typeof e.findings[0] === "object"
-          ? `<ol>${e.findings.map(f => `<li>${escapeHtml(f.text)}<span class="status-chip" style="background:${statusColor(f.status)}">${statusIcon(f.status)} ${statusLabel(f.status)}</span></li>`).join("")}</ol>`
-          : `<ul>${e.findings.map(f => `<li>${escapeHtml(f)}</li>`).join("")}</ul>`)
+      ? `<${listTag}>${e.findings.map(f => {
+          const s = findingStatus(f);
+          const chip = s
+            ? `<span class="status-chip" style="background:${statusColor(s)}">${statusIcon(s)} ${statusLabel(s)}</span>`
+            : "";
+          return `<li>${escapeHtml(findingText(f))}${chip}</li>`;
+        }).join("")}</${listTag}>`
       : `<div class="form-hint">No findings recorded.</div>`;
-    const summaryHtml = (e.summary || []).length ? `<ul>${e.summary.map(s => `<li>${escapeHtml(s)}</li>`).join("")}</ul>` : "";
+    const summaryHtml = (e.summary || []).length
+      ? `<ul>${e.summary.map(s => `<li>${escapeHtml(s && typeof s === "object" ? s.text : s)}</li>`).join("")}</ul>`
+      : "";
     const refsHtml = (e.references || []).length
       ? `<h4 class="section-lbl">References</h4><div class="refs">${e.references.map(r => `<a href="${safeUrl(r.url)}" target="_blank" rel="noopener">${escapeHtml(r.label)}</a>`).join("")}</div>`
       : "";
-    const deleteBtn = currentRole === "admin"
-      ? `<button class="icon-btn entry-delete-btn" data-id="${e.id}" title="Delete this finding">🗑</button>`
+    const adminBtns = currentRole === "admin"
+      ? `<button class="icon-btn entry-edit-btn" data-id="${e.id}" title="Edit this finding">✏️</button>` +
+        `<button class="icon-btn entry-delete-btn" data-id="${e.id}" title="Delete this finding">🗑</button>`
       : "";
     return `
       <div class="entry" id="entry-${idx}" style="border-left-color:${modeColor}">
@@ -675,7 +802,7 @@ function renderEntries() {
           <div class="badges">
             <span class="badge" style="background:${modeColor}">${modeLabel}</span>
             ${clientBadges}
-            ${deleteBtn}
+            ${adminBtns}
           </div>
         </div>
         <h4 class="section-lbl">Findings</h4>
@@ -734,6 +861,11 @@ async function refreshRestorePanel() {
 }
 
 document.getElementById("entriesList").addEventListener("click", async (e) => {
+  const editBtn = e.target.closest(".entry-edit-btn");
+  if (editBtn) {
+    openEditForm(editBtn.dataset.id);
+    return;
+  }
   const btn = e.target.closest(".entry-delete-btn");
   if (!btn) return;
   if (!confirm("Delete this finding? It will be hidden from the tracker but kept in the database, and can be restored from \"Recently deleted.\"")) return;
@@ -897,11 +1029,54 @@ document.getElementById("themeToggle").addEventListener("click", () => {
   document.getElementById("themeToggle").textContent = isDark ? "🌙 Dark mode" : "☀️ Light mode";
 });
 
-document.getElementById("openFormBtn").addEventListener("click", () => {
-  document.getElementById("formBody").classList.remove("collapsed");
-  document.getElementById("formBody").scrollIntoView({ behavior: "smooth", block: "start" });
-});
+// ---------------- Add / edit form ----------------
+const FORM_FIELD_IDS = ["f-date", "f-clients", "f-title", "f-findings", "f-summary", "f-refs"];
+
+function resetForm() {
+  editingId = null;
+  FORM_FIELD_IDS.forEach(id => { document.getElementById(id).value = ""; });
+  document.getElementById("f-mode").value = "1";
+  document.getElementById("formTitle").textContent = "Add a new finding";
+  document.getElementById("saveEntryBtn").textContent = "Save finding";
+  document.getElementById("editingNote").style.display = "none";
+}
+
+function openAddForm() {
+  resetForm();
+  const body = document.getElementById("formBody");
+  body.classList.remove("collapsed");
+  body.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function openEditForm(id) {
+  const entry = entries.find(e => String(e.id) === String(id));
+  if (!entry) return;
+  editingId = entry.id;
+
+  document.getElementById("f-date").value = entry.date || "";
+  document.getElementById("f-mode").value = String(entry.mode === 2 ? 2 : 1);
+  document.getElementById("f-clients").value = (entry.clients || []).join(", ");
+  document.getElementById("f-title").value = entry.title || "";
+  document.getElementById("f-findings").value = (entry.findings || []).map(serialiseFinding).join("\n");
+  document.getElementById("f-summary").value = (entry.summary || [])
+    .map(s => (s && typeof s === "object" ? String(s.text || "") : String(s || ""))).join("\n");
+  document.getElementById("f-refs").value = (entry.references || [])
+    .map(r => `${r.label || r.url} | ${r.url}`).join("\n");
+
+  document.getElementById("formTitle").textContent = "Edit finding";
+  document.getElementById("saveEntryBtn").textContent = "Save changes";
+  const note = document.getElementById("editingNote");
+  note.textContent = `Editing entry #${entry.id} — ${entry.title}`;
+  note.style.display = "";
+
+  const body = document.getElementById("formBody");
+  body.classList.remove("collapsed");
+  body.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+document.getElementById("openFormBtn").addEventListener("click", openAddForm);
 document.getElementById("cancelFormBtn").addEventListener("click", () => {
+  resetForm();
   document.getElementById("formBody").classList.add("collapsed");
 });
 
@@ -910,7 +1085,7 @@ document.getElementById("saveEntryBtn").addEventListener("click", async () => {
   const mode = parseInt(document.getElementById("f-mode").value, 10);
   const clients = document.getElementById("f-clients").value.split(",").map(s => s.trim()).filter(Boolean);
   const title = document.getElementById("f-title").value.trim();
-  const findings = document.getElementById("f-findings").value.split("\n").map(s => s.trim()).filter(Boolean);
+  const findings = document.getElementById("f-findings").value.split("\n").map(s => s.trim()).filter(Boolean).map(parseFinding);
   const summary = document.getElementById("f-summary").value.split("\n").map(s => s.trim()).filter(Boolean);
   const references = document.getElementById("f-refs").value.split("\n").map(s => s.trim()).filter(Boolean).map(line => {
     const [label, url] = line.split("|").map(s => s.trim());
@@ -921,28 +1096,34 @@ document.getElementById("saveEntryBtn").addEventListener("click", async () => {
     alert("Please fill in at least a date and a title.");
     return;
   }
-  const newEntry = { date, mode, clients: clients.length ? clients : ["Unspecified"], title, findings, summary, references };
+  const payload = { date, mode, clients: clients.length ? clients : ["Unspecified"], title, findings, summary, references };
+  const isEdit = editingId !== null;
 
   const btn = document.getElementById("saveEntryBtn");
   btn.disabled = true;
   try {
-    const res = await fetch("/api/entries", {
-      method: "POST",
+    const res = await fetch(isEdit ? `/api/entries/${editingId}` : "/api/entries", {
+      method: isEdit ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newEntry)
+      body: JSON.stringify(payload)
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      alert(data.error || "Could not save this finding. Please try again.");
+      alert(data.error || `Could not ${isEdit ? "update" : "save"} this finding. Please try again.`);
       return;
     }
-    const created = await res.json();
-    entries.push(created);
-    ["f-date", "f-clients", "f-title", "f-findings", "f-summary", "f-refs"].forEach(id => document.getElementById(id).value = "");
+    const saved = await res.json();
+    if (isEdit) {
+      const i = entries.findIndex(en => String(en.id) === String(saved.id));
+      if (i !== -1) entries[i] = saved; else entries.push(saved);
+    } else {
+      entries.push(saved);
+    }
+    resetForm();
     document.getElementById("formBody").classList.add("collapsed");
     renderAll();
   } catch (e) {
-    alert("Could not reach the server. Your finding was not saved.");
+    alert(`Could not reach the server. Your ${isEdit ? "changes were" : "finding was"} not saved.`);
   } finally {
     btn.disabled = false;
   }
