@@ -3,6 +3,7 @@ import { escapeHtml, safeUrl, fmtDate, clientColor } from "./utils.js";
 import { findingText } from "./findingSeverity.js";
 import * as api from "./api.js";
 import { refreshRestorePanel } from "./admin.js";
+import { icon } from "./icons.js";
 
 // Known threat-service metadata, keyed by a substring of the URL's hostname.
 // `aliases` are the prose spellings used in findings/summary text, so a service
@@ -98,7 +99,7 @@ export function renderRegistry() {
     const clientChips = Array.from(it.clients).map(c => `<span class="badge" style="background:${clientColor(c)};font-size:9.5px;padding:2px 7px;">${escapeHtml(c)}</span>`).join("");
     const seenRange = it.firstSeen === it.lastSeen ? fmtDate(it.firstSeen) : `${fmtDate(it.firstSeen)} → ${fmtDate(it.lastSeen)}`;
     const deleteBtn = state.currentRole === "admin"
-      ? `<button class="icon-btn site-delete-btn" data-host="${escapeHtml(it.host)}" title="Hide this site">🗑</button>`
+      ? `<button class="icon-btn site-delete-btn" data-host="${escapeHtml(it.host)}" title="Hide this site">${icon("trash", 14)}</button>`
       : "";
     return `
       <div class="reg-card">

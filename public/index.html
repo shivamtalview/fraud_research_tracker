@@ -10,7 +10,7 @@
 
 <div class="login-overlay" id="loginOverlay">
   <div class="login-card">
-    <div class="title-icon">🛡️</div>
+    <div class="brand-icon" data-icon="shield"></div>
     <h1>Test Security &amp; Exam Fraud</h1>
     <p>Enter the shared password to view and add findings.</p>
     <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
@@ -23,7 +23,7 @@
 
   <header>
     <div class="title-block">
-      <div class="title-icon">🛡️</div>
+      <div class="brand-icon" data-icon="shield"></div>
       <div>
         <h1>Test Security &amp; Exam Fraud</h1>
         <p class="sub">Daily research findings mapped to the Red Team (Mode 1) and Investigation (Mode 2) process flows</p>
@@ -31,132 +31,142 @@
       </div>
     </div>
     <div class="header-actions">
-      <button class="ghost" id="themeToggle">🌙 Dark mode</button>
-      <button class="ghost" id="logoutBtn">Log out</button>
-      <button class="primary" id="openFormBtn">+ Add finding</button>
+      <button class="ghost icon-only" id="themeToggle" title="Toggle theme" data-icon="moon"></button>
+      <button class="ghost" id="logoutBtn"><span data-icon="log-out"></span>Log out</button>
+      <button class="primary" id="openFormBtn"><span data-icon="plus"></span>Add finding</button>
     </div>
   </header>
 
   <div class="stats" id="statsRow"></div>
 
-  <section class="block">
-    <div class="block-head" data-target="timelineBody">
-      <h2>Report timeline <span class="hint">— click a point to jump to that entry</span></h2>
-      <span class="chev">▾</span>
-    </div>
-    <div class="block-body" id="timelineBody">
-      <div class="timeline-scroll"><div class="timeline" id="timeline"></div></div>
-    </div>
-  </section>
-
-  <section class="block" id="sevSection">
-    <div class="block-head" data-target="sevBody">
-      <h2>Severity breakdown <span class="hint">— flagged findings across all reports</span></h2>
-      <span class="chev">▾</span>
-    </div>
-    <div class="block-body" id="sevBody">
-      <div class="sev-bar-wrap">
-        <div class="sev-bar" id="sevBar"></div>
-        <div class="sev-legend" id="sevLegend"></div>
+  <div class="dashboard-grid">
+    <div class="main-col">
+      <div class="tabbar" id="tabbar">
+        <div class="tab active" data-mode="all">All entries</div>
+        <div class="tab" data-mode="1">Mode 1 · Red Team</div>
+        <div class="tab" data-mode="2">Mode 2 · Investigation</div>
       </div>
-    </div>
-  </section>
 
-  <section class="block">
-    <div class="block-head" data-target="registryBody">
-      <h2>Tracked sites &amp; services <span class="hint">— every fraud / cheating service identified so far</span></h2>
-      <span class="chev">▾</span>
-    </div>
-    <div class="block-body" id="registryBody">
-      <div class="registry-grid" id="registryGrid"></div>
-    </div>
-  </section>
+      <div class="filter-row">
+        <div class="search-wrap">
+          <span class="search-icon" data-icon="search"></span>
+          <input type="search" id="searchBox" placeholder="Search findings...">
+        </div>
+        <select id="clientFilter">
+          <option value="all">All clients</option>
+        </select>
+        <div class="legend" id="legend"></div>
+      </div>
 
-  <section class="block" id="restoreSection" style="display:none;">
-    <div class="block-head" data-target="restoreBody">
-      <h2>Recently deleted <span class="admin-badge">ADMIN</span> <span class="hint">— nothing here was removed from the database</span></h2>
-      <span class="chev">▾</span>
+      <div id="entriesList"></div>
     </div>
-    <div class="block-body collapsed" id="restoreBody">
-      <h4 class="section-lbl">Deleted findings</h4>
-      <div class="restore-list" id="deletedEntriesList"><div class="empty">Loading…</div></div>
-      <h4 class="section-lbl" style="margin-top:16px;">Hidden sites &amp; services</h4>
-      <div class="restore-list" id="hiddenSitesList"><div class="empty">Loading…</div></div>
-    </div>
-  </section>
 
-  <section class="block">
-    <div class="block-head" data-target="formBody">
-      <h2 id="formTitle">Add a new finding</h2>
-      <span class="chev">▾</span>
-    </div>
-    <div class="block-body collapsed" id="formBody">
-      <div class="editing-note" id="editingNote" style="display:none"></div>
-      <div class="form-grid">
-        <div>
-          <label>Date</label>
-          <input type="date" id="f-date">
+    <aside class="rail">
+      <section class="block">
+        <div class="block-head" data-target="timelineBody">
+          <h2>Report timeline <span class="hint">— click to jump</span></h2>
+          <span class="chev" data-icon="chevron-down"></span>
         </div>
-        <div>
-          <label>Mode</label>
-          <select id="f-mode">
-            <option value="1">Mode 1 — Red Team (proactive)</option>
-            <option value="2">Mode 2 — Investigation (reactive)</option>
-          </select>
+        <div class="block-body" id="timelineBody">
+          <div class="timeline-scroll"><div class="timeline" id="timeline"></div></div>
         </div>
-        <div class="full">
-          <label>Client(s) — comma separated</label>
-          <input type="text" id="f-clients" placeholder="e.g. Cambridge Linguaskill, GMAT">
+      </section>
+
+      <section class="block" id="sevSection">
+        <div class="block-head" data-target="sevBody">
+          <h2>Severity breakdown <span class="hint">— across all reports</span></h2>
+          <span class="chev" data-icon="chevron-down"></span>
         </div>
-        <div class="full">
-          <label>Entry title</label>
-          <input type="text" id="f-title" placeholder="e.g. Daily Research Report — August 12, 2026">
-        </div>
-        <div class="full">
-          <label>Findings — one per line</label>
-          <textarea id="f-findings" rows="4" placeholder="One finding per line. End a line with ⛔ Critical, ▲ Serious or ◐ Monitoring to flag it."></textarea>
-          <div class="form-hint">
-            To flag a finding's severity, end the line with a marker:
-            <code>⛔ Critical</code>, <code>▲ Serious</code>, <code>◐ Monitoring</code> or <code>✓ No findings</code>.
-            <code>[critical]</code> / <code>[serious]</code> / <code>[monitoring]</code> work too.
-            Flagged findings feed the severity breakdown and the “entries with critical flags” count; unflagged lines stay plain.
+        <div class="block-body" id="sevBody">
+          <div class="sev-bar-wrap">
+            <div class="sev-bar" id="sevBar"></div>
+            <div class="sev-legend" id="sevLegend"></div>
           </div>
         </div>
-        <div class="full">
-          <label>Summary — one per line</label>
-          <textarea id="f-summary" rows="3" placeholder="One summary point per line"></textarea>
+      </section>
+
+      <section class="block">
+        <div class="block-head" data-target="registryBody">
+          <h2>Tracked sites &amp; services <span class="hint">— every service identified</span></h2>
+          <span class="chev" data-icon="chevron-down"></span>
         </div>
-        <div class="full">
-          <label>References — one per line, format: Label | URL</label>
-          <textarea id="f-refs" rows="2" placeholder="TestHelper | https://www.testhelper.org/..."></textarea>
-          <div class="form-hint">Leave blank if internal-only (e.g. telemetry analysis with no external links). Any new site/service referenced here is automatically added to the registry above.</div>
+        <div class="block-body" id="registryBody">
+          <div class="registry-grid" id="registryGrid"></div>
         </div>
-      </div>
-      <div class="form-actions">
-        <button class="ghost" id="cancelFormBtn">Cancel</button>
-        <button class="primary" id="saveEntryBtn">Save finding</button>
-      </div>
-    </div>
-  </section>
+      </section>
 
-  <div class="tabbar" id="tabbar">
-    <div class="tab active" data-mode="all">All entries</div>
-    <div class="tab" data-mode="1">Mode 1 · Red Team</div>
-    <div class="tab" data-mode="2">Mode 2 · Investigation</div>
+      <section class="block" id="restoreSection" style="display:none;">
+        <div class="block-head" data-target="restoreBody">
+          <h2>Recently deleted <span class="admin-badge">ADMIN</span></h2>
+          <span class="chev" data-icon="chevron-down"></span>
+        </div>
+        <div class="block-body collapsed" id="restoreBody">
+          <h4 class="section-lbl">Deleted findings</h4>
+          <div class="restore-list" id="deletedEntriesList"><div class="empty">Loading…</div></div>
+          <h4 class="section-lbl" style="margin-top:16px;">Hidden sites &amp; services</h4>
+          <div class="restore-list" id="hiddenSitesList"><div class="empty">Loading…</div></div>
+        </div>
+      </section>
+    </aside>
   </div>
-
-  <div class="filter-row">
-    <select id="clientFilter">
-      <option value="all">All clients</option>
-    </select>
-    <input type="search" id="searchBox" placeholder="Search findings...">
-    <div class="legend" id="legend"></div>
-  </div>
-
-  <div id="entriesList"></div>
 
   <footer class="note">Internal use — Talview test security monitoring. Findings are shared and saved for every user of this tracker.</footer>
 </div>
+
+<div class="panel-backdrop" id="formBackdrop"></div>
+<section class="slideover" id="formBody">
+  <div class="slideover-head">
+    <h2 id="formTitle">Add a new finding</h2>
+    <button class="icon-btn" id="closeFormBtn" title="Close" data-icon="x"></button>
+  </div>
+  <div class="slideover-body">
+    <div class="editing-note" id="editingNote" style="display:none"></div>
+    <div class="form-grid">
+      <div>
+        <label>Date</label>
+        <input type="date" id="f-date">
+      </div>
+      <div>
+        <label>Mode</label>
+        <select id="f-mode">
+          <option value="1">Mode 1 — Red Team (proactive)</option>
+          <option value="2">Mode 2 — Investigation (reactive)</option>
+        </select>
+      </div>
+      <div class="full">
+        <label>Client(s) — comma separated</label>
+        <input type="text" id="f-clients" placeholder="e.g. Cambridge Linguaskill, GMAT">
+      </div>
+      <div class="full">
+        <label>Entry title</label>
+        <input type="text" id="f-title" placeholder="e.g. Daily Research Report — August 12, 2026">
+      </div>
+      <div class="full">
+        <label>Findings — one per line</label>
+        <textarea id="f-findings" rows="4" placeholder="One finding per line. End a line with ⛔ Critical, ▲ Serious or ◐ Monitoring to flag it."></textarea>
+        <div class="form-hint">
+          To flag a finding's severity, end the line with a marker:
+          <code>⛔ Critical</code>, <code>▲ Serious</code>, <code>◐ Monitoring</code> or <code>✓ No findings</code>.
+          <code>[critical]</code> / <code>[serious]</code> / <code>[monitoring]</code> work too.
+          Flagged findings feed the severity breakdown and the “reports with critical findings” count; unflagged lines stay plain.
+        </div>
+      </div>
+      <div class="full">
+        <label>Summary — one per line</label>
+        <textarea id="f-summary" rows="3" placeholder="One summary point per line"></textarea>
+      </div>
+      <div class="full">
+        <label>References — one per line, format: Label | URL</label>
+        <textarea id="f-refs" rows="2" placeholder="TestHelper | https://www.testhelper.org/..."></textarea>
+        <div class="form-hint">Leave blank if internal-only (e.g. telemetry analysis with no external links). Any new site/service referenced here is automatically added to the registry above.</div>
+      </div>
+    </div>
+  </div>
+  <div class="form-actions">
+    <button class="ghost" id="cancelFormBtn">Cancel</button>
+    <button class="primary" id="saveEntryBtn">Save finding</button>
+  </div>
+</section>
 
 <script type="module" src="js/main.js"></script>
 </body>

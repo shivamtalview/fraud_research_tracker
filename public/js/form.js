@@ -4,6 +4,16 @@ import * as api from "./api.js";
 
 const FORM_FIELD_IDS = ["f-date", "f-clients", "f-title", "f-findings", "f-summary", "f-refs"];
 
+function openPanel() {
+  document.getElementById("formBody").classList.add("open");
+  document.getElementById("formBackdrop").classList.add("show");
+}
+
+function closePanel() {
+  document.getElementById("formBody").classList.remove("open");
+  document.getElementById("formBackdrop").classList.remove("show");
+}
+
 export function resetForm() {
   state.editingId = null;
   FORM_FIELD_IDS.forEach(id => { document.getElementById(id).value = ""; });
@@ -15,9 +25,7 @@ export function resetForm() {
 
 export function openAddForm() {
   resetForm();
-  const body = document.getElementById("formBody");
-  body.classList.remove("collapsed");
-  body.scrollIntoView({ behavior: "smooth", block: "start" });
+  openPanel();
 }
 
 export function openEditForm(id) {
@@ -41,15 +49,20 @@ export function openEditForm(id) {
   note.textContent = `Editing entry #${entry.id} — ${entry.title}`;
   note.style.display = "";
 
-  const body = document.getElementById("formBody");
-  body.classList.remove("collapsed");
-  body.scrollIntoView({ behavior: "smooth", block: "start" });
+  openPanel();
+}
+
+function closeForm() {
+  resetForm();
+  closePanel();
 }
 
 document.getElementById("openFormBtn").addEventListener("click", openAddForm);
-document.getElementById("cancelFormBtn").addEventListener("click", () => {
-  resetForm();
-  document.getElementById("formBody").classList.add("collapsed");
+document.getElementById("cancelFormBtn").addEventListener("click", closeForm);
+document.getElementById("closeFormBtn").addEventListener("click", closeForm);
+document.getElementById("formBackdrop").addEventListener("click", closeForm);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && document.getElementById("formBody").classList.contains("open")) closeForm();
 });
 
 document.getElementById("saveEntryBtn").addEventListener("click", async () => {
@@ -88,7 +101,7 @@ document.getElementById("saveEntryBtn").addEventListener("click", async () => {
       state.entries.push(saved);
     }
     resetForm();
-    document.getElementById("formBody").classList.add("collapsed");
+    closePanel();
     renderAll();
   } catch (e) {
     alert(`Could not reach the server. Your ${isEdit ? "changes were" : "finding was"} not saved.`);

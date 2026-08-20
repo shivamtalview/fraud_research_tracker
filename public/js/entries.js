@@ -4,6 +4,7 @@ import { findingText, findingStatus, statusColor, statusIcon, statusLabel } from
 import * as api from "./api.js";
 import { refreshRestorePanel } from "./admin.js";
 import { openEditForm } from "./form.js";
+import { icon } from "./icons.js";
 
 export function allClients() {
   const set = new Set();
@@ -78,8 +79,8 @@ export function renderEntries() {
       ? `<h4 class="section-lbl">References</h4><div class="refs">${e.references.map(r => `<a href="${safeUrl(r.url)}" target="_blank" rel="noopener">${escapeHtml(r.label)}</a>`).join("")}</div>`
       : "";
     const adminBtns = state.currentRole === "admin"
-      ? `<button class="icon-btn entry-edit-btn" data-id="${e.id}" title="Edit this finding">✏️</button>` +
-        `<button class="icon-btn entry-delete-btn" data-id="${e.id}" title="Delete this finding">🗑</button>`
+      ? `<button class="icon-btn entry-edit-btn" data-id="${e.id}" title="Edit this finding">${icon("pencil", 14)}</button>` +
+        `<button class="icon-btn entry-delete-btn" data-id="${e.id}" title="Delete this finding">${icon("trash", 14)}</button>`
       : "";
     return `
       <div class="entry" id="entry-${idx}" style="border-left-color:${modeColor}">

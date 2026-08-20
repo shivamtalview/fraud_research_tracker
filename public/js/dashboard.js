@@ -4,6 +4,7 @@ import { fmtDate, daysAgo } from "./utils.js";
 import { findingStatus, statusColor, statusIcon, statusLabel, SEVERITY_ORDER } from "./findingSeverity.js";
 import { allClients } from "./entries.js";
 import { buildRegistry } from "./registry.js";
+import { icon } from "./icons.js";
 
 export function renderStats() {
   const total = state.entries.length;
@@ -13,14 +14,14 @@ export function renderStats() {
   const lastDate = state.entries.reduce((max, e) => e.date > max ? e.date : max, state.entries[0]?.date || "");
   const ago = daysAgo(lastDate);
   const stats = [
-    { val: total, lbl: "Total entries", icon: "📄", accent: "var(--text-muted)" },
-    { val: clientsCount, lbl: "Clients tracked", icon: "🏢", accent: "var(--series-blue)" },
-    { val: sitesCount, lbl: "Sites &amp; services tracked", icon: "🔗", accent: "var(--series-orange)" },
-    { val: critical, lbl: "Reports with critical findings", icon: "⛔", accent: "var(--status-critical)" },
-    { val: ago === 0 ? "Today" : (ago + "d ago"), lbl: "Last report — " + fmtDate(lastDate), icon: "🕒", accent: "var(--series-aqua)" }
+    { val: total, lbl: "Total entries", icon: "file", accent: "var(--text-muted)" },
+    { val: clientsCount, lbl: "Clients tracked", icon: "building", accent: "var(--series-blue)" },
+    { val: sitesCount, lbl: "Sites &amp; services tracked", icon: "link", accent: "var(--series-orange)" },
+    { val: critical, lbl: "Reports with critical findings", icon: "alert-triangle", accent: "var(--status-critical)" },
+    { val: ago === 0 ? "Today" : (ago + "d ago"), lbl: "Last report — " + fmtDate(lastDate), icon: "clock", accent: "var(--series-aqua)" }
   ];
   document.getElementById("statsRow").innerHTML = stats.map(s =>
-    `<div class="stat-tile"><div class="accent" style="background:${s.accent}"></div><div class="icon">${s.icon}</div><div class="val">${s.val}</div><div class="lbl">${s.lbl}</div></div>`
+    `<div class="stat-tile"><div class="accent" style="background:${s.accent}"></div><div class="icon" style="background:color-mix(in srgb, ${s.accent} 14%, transparent);color:${s.accent}">${icon(s.icon, 16)}</div><div class="val">${s.val}</div><div class="lbl">${s.lbl}</div></div>`
   ).join("");
   document.getElementById("lastUpdatedMeta").textContent = `${total} entries logged · last report ${fmtDate(lastDate)} · Talview test security monitoring`;
 }
