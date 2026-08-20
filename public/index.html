@@ -676,7 +676,7 @@ function renderStats() {
     { val: total, lbl: "Total entries", icon: "📄", accent: "var(--text-muted)" },
     { val: clientsCount, lbl: "Clients tracked", icon: "🏢", accent: "var(--series-blue)" },
     { val: sitesCount, lbl: "Sites &amp; services tracked", icon: "🔗", accent: "var(--series-orange)" },
-    { val: critical, lbl: "Entries with critical flags", icon: "⛔", accent: "var(--status-critical)" },
+    { val: critical, lbl: "Reports with critical findings", icon: "⛔", accent: "var(--status-critical)" },
     { val: ago === 0 ? "Today" : (ago + "d ago"), lbl: "Last report — " + fmtDate(lastDate), icon: "🕒", accent: "var(--series-aqua)" }
   ];
   document.getElementById("statsRow").innerHTML = stats.map(s =>
