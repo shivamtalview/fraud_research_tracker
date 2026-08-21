@@ -1,6 +1,6 @@
 import { state } from "./core.js";
 import { escapeHtml, fmtDate } from "./utils.js";
-import { renderEntries } from "./entries.js";
+import { renderEntries, expandEntry } from "./entries.js";
 
 export function renderTimeline() {
   const sorted = [...state.entries].sort((a, b) => a.date.localeCompare(b.date));
@@ -18,6 +18,8 @@ export function renderTimeline() {
   tl.querySelectorAll(".tl-node").forEach(node => {
     node.addEventListener("click", () => {
       const idx = node.dataset.idx;
+      const target = state.entries[idx];
+      if (target) expandEntry(target.id);
       state.activeMode = "all"; state.activeClient = "all"; state.searchTerm = "";
       document.getElementById("searchBox").value = "";
       document.getElementById("clientFilter").value = "all";

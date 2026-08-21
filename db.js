@@ -35,6 +35,7 @@ async function init() {
     )
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS site_notes_host_idx ON site_notes(host)`);
+  await pool.query(`ALTER TABLE site_notes ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT FALSE`);
 
   // Seed initial entries only when the table is empty.
   const { rows } = await pool.query("SELECT COUNT(*)::int AS n FROM entries");
@@ -272,14 +273,22 @@ function rowToNote(row) {
     host: row.host,
     note: row.note,
     authorRole: row.author_role,
-    createdAt: row.created_at
+    createdAt: row.created_at,
+    isDeleted: row.is_deleted
   };
 }
 
 async function getSiteNotes(host) {
   const { rows } = await pool.query(
-    "SELECT * FROM site_notes WHERE host = $1 ORDER BY created_at DESC, id DESC",
+    "SELECT * FROM site_notes WHERE host = $1 AND is_deleted = FALSE ORDER BY created_at DESC, id DESC",
     [host]
+  );
+  return rows.map(rowToNote);
+}
+
+async function getDeletedSiteNotes() {
+  const { rows } = await pool.query(
+    "SELECT * FROM site_notes WHERE is_deleted = TRUE ORDER BY created_at DESC, id DESC"
   );
   return rows.map(rowToNote);
 }
@@ -290,6 +299,30 @@ async function addSiteNote(host, note, role) {
     [host, note, role]
   );
   return rowToNote(rows[0]);
+}
+
+async function updateSiteNote(id, note) {
+  const { rows } = await pool.query(
+    "UPDATE site_notes SET note = $1 WHERE id = $2 RETURNING *",
+    [note, id]
+  );
+  return rows[0] ? rowToNote(rows[0]) : null;
+}
+
+async function softDeleteSiteNote(id) {
+  const { rows } = await pool.query(
+    "UPDATE site_notes SET is_deleted = TRUE WHERE id = $1 RETURNING *",
+    [id]
+  );
+  return rows[0] ? rowToNote(rows[0]) : null;
+}
+
+async function restoreSiteNote(id) {
+  const { rows } = await pool.query(
+    "UPDATE site_notes SET is_deleted = FALSE WHERE id = $1 RETURNING *",
+    [id]
+  );
+  return rows[0] ? rowToNote(rows[0]) : null;
 }
 
 module.exports = {
@@ -304,5 +337,9 @@ module.exports = {
   hideSite,
   restoreSite,
   getSiteNotes,
-  addSiteNote
+  addSiteNote,
+  getDeletedSiteNotes,
+  updateSiteNote,
+  softDeleteSiteNote,
+  restoreSiteNote
 };

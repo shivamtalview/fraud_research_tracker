@@ -14,7 +14,11 @@ const {
   hideSite,
   restoreSite,
   getSiteNotes,
-  addSiteNote
+  addSiteNote,
+  getDeletedSiteNotes,
+  updateSiteNote,
+  softDeleteSiteNote,
+  restoreSiteNote
 } = require("./db");
 
 const APP_PASSWORD = process.env.APP_PASSWORD;
@@ -254,6 +258,56 @@ app.post("/api/sites/:host/notes", requireAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to save note." });
+  }
+});
+
+app.patch("/api/sites/:host/notes/:id", requireAuth, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid note id." });
+  const note = String((req.body || {}).note || "").trim();
+  if (!note) return res.status(400).json({ error: "note cannot be empty." });
+  try {
+    const updated = await updateSiteNote(id, note);
+    if (!updated) return res.status(404).json({ error: "Note not found." });
+    res.json(updated);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update note." });
+  }
+});
+
+app.delete("/api/sites/:host/notes/:id", requireAuth, requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid note id." });
+  try {
+    const updated = await softDeleteSiteNote(id);
+    if (!updated) return res.status(404).json({ error: "Note not found." });
+    res.json(updated);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to delete note." });
+  }
+});
+
+app.post("/api/sites/:host/notes/:id/restore", requireAuth, requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid note id." });
+  try {
+    const updated = await restoreSiteNote(id);
+    if (!updated) return res.status(404).json({ error: "Note not found." });
+    res.json(updated);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to restore note." });
+  }
+});
+
+app.get("/api/notes/deleted", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    res.json(await getDeletedSiteNotes());
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch deleted notes." });
   }
 });
 

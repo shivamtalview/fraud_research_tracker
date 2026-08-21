@@ -6,6 +6,17 @@ import { refreshRestorePanel } from "./admin.js";
 import { openEditForm } from "./form.js";
 import { icon } from "./icons.js";
 
+// Which entries are expanded, by id. UI-only state — not shared via core.js's
+// `state` since nothing outside this file needs it, and resetting on reload
+// is fine (matches how the rail's collapsible sections already behave).
+const expandedIds = new Set();
+
+// Exported so timeline.js can force an entry open before scrolling to it —
+// flashing a collapsed card that reveals nothing wouldn't be useful.
+export function expandEntry(id) {
+  expandedIds.add(String(id));
+}
+
 export function allClients() {
   const set = new Set();
   state.entries.forEach(e => e.clients.forEach(c => set.add(c)));
@@ -82,9 +93,10 @@ export function renderEntries() {
       ? `<button class="icon-btn entry-edit-btn" data-id="${e.id}" title="Edit this finding">${icon("pencil", 14)}</button>` +
         `<button class="icon-btn entry-delete-btn" data-id="${e.id}" title="Delete this finding">${icon("trash", 14)}</button>`
       : "";
+    const isOpen = expandedIds.has(String(e.id));
     return `
       <div class="entry" id="entry-${idx}" style="border-left-color:${modeColor}">
-        <div class="entry-head">
+        <div class="entry-head" data-id="${e.id}">
           <div>
             <div class="entry-title">${escapeHtml(e.title)}</div>
             <div class="entry-date">${fmtDate(e.date)} · ${daysAgo(e.date) === 0 ? "today" : daysAgo(e.date) + "d ago"}</div>
@@ -93,12 +105,15 @@ export function renderEntries() {
             <span class="badge" style="background:${modeColor}">${modeLabel}</span>
             ${clientTags}
             ${adminBtns}
+            <span class="chev entry-chev" style="transform:rotate(${isOpen ? "0deg" : "-90deg"})">${icon("chevron-down", 14)}</span>
           </div>
         </div>
-        <h4 class="section-lbl">Findings</h4>
-        ${findingsHtml}
-        ${summaryHtml ? `<h4 class="section-lbl">Summary</h4>${summaryHtml}` : ""}
-        ${refsHtml}
+        <div class="entry-body${isOpen ? "" : " collapsed"}">
+          <h4 class="section-lbl">Findings</h4>
+          ${findingsHtml}
+          ${summaryHtml ? `<h4 class="section-lbl">Summary</h4>${summaryHtml}` : ""}
+          ${refsHtml}
+        </div>
       </div>`;
   }).join("");
 }
@@ -126,17 +141,28 @@ document.getElementById("entriesList").addEventListener("click", async (e) => {
     openEditForm(editBtn.dataset.id);
     return;
   }
-  const btn = e.target.closest(".entry-delete-btn");
-  if (!btn) return;
-  if (!confirm("Delete this finding? It will be hidden from the tracker but kept in the database, and can be restored from \"Recently deleted.\"")) return;
-  const id = btn.dataset.id;
-  try {
-    const res = await api.deleteEntry(id);
-    if (!res.ok) { alert("Could not delete this finding."); return; }
-    state.entries = state.entries.filter(en => String(en.id) !== String(id));
-    renderAll();
-    refreshRestorePanel();
-  } catch (err) {
-    alert("Could not reach the server.");
+  const deleteBtn = e.target.closest(".entry-delete-btn");
+  if (deleteBtn) {
+    if (!confirm("Delete this finding? It will be hidden from the tracker but kept in the database, and can be restored from \"Recently deleted.\"")) return;
+    const id = deleteBtn.dataset.id;
+    try {
+      const res = await api.deleteEntry(id);
+      if (!res.ok) { alert("Could not delete this finding."); return; }
+      state.entries = state.entries.filter(en => String(en.id) !== String(id));
+      renderAll();
+      refreshRestorePanel();
+    } catch (err) {
+      alert("Could not reach the server.");
+    }
+    return;
   }
+
+  const head = e.target.closest(".entry-head");
+  if (!head) return;
+  const id = head.dataset.id;
+  const body = head.nextElementSibling;
+  const chev = head.querySelector(".entry-chev");
+  const nowOpen = body.classList.toggle("collapsed") === false;
+  if (nowOpen) { expandedIds.add(id); } else { expandedIds.delete(id); }
+  if (chev) chev.style.transform = nowOpen ? "rotate(0deg)" : "rotate(-90deg)";
 });

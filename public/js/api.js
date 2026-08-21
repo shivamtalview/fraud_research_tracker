@@ -76,3 +76,23 @@ export function addSiteNote(host, note) {
     body: JSON.stringify({ note })
   });
 }
+
+export function updateSiteNote(host, id, note) {
+  return fetch(`/api/sites/${encodeURIComponent(host)}/notes/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ note })
+  });
+}
+
+export function deleteSiteNote(host, id) {
+  return fetch(`/api/sites/${encodeURIComponent(host)}/notes/${id}`, { method: "DELETE" });
+}
+
+export function restoreSiteNote(host, id) {
+  return fetch(`/api/sites/${encodeURIComponent(host)}/notes/${id}/restore`, { method: "POST" });
+}
+
+export function getDeletedNotes() {
+  return fetch("/api/notes/deleted").then(asJson);
+}

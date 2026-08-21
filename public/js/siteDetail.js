@@ -1,16 +1,18 @@
 // The per-site notes thread: a slide-over opened by clicking a registry
-// card. Viewing notes is public; adding one requires being logged in (any
-// role — same tier as adding a finding).
+// card. Viewing notes is public; adding/editing one requires being logged in
+// (any role); deleting (soft) is admin-only.
 import { state } from "./core.js";
 import { escapeHtml, fmtDate, clientColor } from "./utils.js";
 import { buildRegistry } from "./registry.js";
 import * as api from "./api.js";
 import { registerPanel, openPanel, closeAllPanels } from "./panel.js";
+import { icon } from "./icons.js";
 
 registerPanel("siteDetailPanel");
 
 let currentHost = null;
 let currentNotes = [];
+let editingNoteId = null;
 
 function fmtDateTime(iso) {
   return new Date(iso).toLocaleString(undefined, {
@@ -35,15 +37,38 @@ function siteMetaHtml(host) {
   `;
 }
 
+function noteRowHtml(n) {
+  if (editingNoteId === n.id) {
+    return `
+      <div class="note-edit-row" data-note-id="${n.id}">
+        <textarea rows="2">${escapeHtml(n.note)}</textarea>
+        <div class="note-edit-actions">
+          <button class="ghost note-cancel-btn" data-id="${n.id}">Cancel</button>
+          <button class="primary note-save-btn" data-id="${n.id}">Save</button>
+        </div>
+      </div>`;
+  }
+  const canEdit = !!state.currentRole;
+  const canDelete = state.currentRole === "admin";
+  const actions = (canEdit || canDelete)
+    ? `<div class="note-actions">
+        ${canEdit ? `<button class="icon-btn note-edit-btn" data-id="${n.id}" title="Edit note">${icon("pencil", 13)}</button>` : ""}
+        ${canDelete ? `<button class="icon-btn note-delete-btn" data-id="${n.id}" title="Delete note">${icon("trash", 13)}</button>` : ""}
+      </div>`
+    : "";
+  return `
+    <div class="restore-row" data-note-id="${n.id}">
+      <div>
+        <div class="r-title">${escapeHtml(n.note)}</div>
+        <div class="r-meta">${fmtDateTime(n.createdAt)} · logged in as ${escapeHtml(n.authorRole)}</div>
+      </div>
+      ${actions}
+    </div>`;
+}
+
 function renderNotesList() {
   document.getElementById("siteNotesList").innerHTML = currentNotes.length
-    ? currentNotes.map(n => `
-      <div class="restore-row note-row">
-        <div>
-          <div class="r-title">${escapeHtml(n.note)}</div>
-          <div class="r-meta">${fmtDateTime(n.createdAt)} · logged in as ${escapeHtml(n.authorRole)}</div>
-        </div>
-      </div>`).join("")
+    ? currentNotes.map(noteRowHtml).join("")
     : `<div class="empty">No notes yet.</div>`;
 }
 
@@ -80,6 +105,7 @@ function renderComposer() {
 
 export async function openSiteDetail(host) {
   currentHost = host;
+  editingNoteId = null;
   document.getElementById("siteDetailTitle").textContent = host;
   document.getElementById("siteDetailMeta").innerHTML = siteMetaHtml(host);
   currentNotes = [];
@@ -95,3 +121,53 @@ export async function openSiteDetail(host) {
 }
 
 document.getElementById("closeSiteDetailBtn").addEventListener("click", closeAllPanels);
+
+document.getElementById("siteNotesList").addEventListener("click", async (e) => {
+  const editBtn = e.target.closest(".note-edit-btn");
+  if (editBtn) {
+    editingNoteId = parseInt(editBtn.dataset.id, 10);
+    renderNotesList();
+    return;
+  }
+  const cancelBtn = e.target.closest(".note-cancel-btn");
+  if (cancelBtn) {
+    editingNoteId = null;
+    renderNotesList();
+    return;
+  }
+  const saveBtn = e.target.closest(".note-save-btn");
+  if (saveBtn) {
+    const id = saveBtn.dataset.id;
+    const textarea = saveBtn.closest(".note-edit-row").querySelector("textarea");
+    const newText = textarea.value.trim();
+    if (!newText) return;
+    saveBtn.disabled = true;
+    try {
+      const res = await api.updateSiteNote(currentHost, id, newText);
+      if (!res.ok) { alert("Could not save this note."); return; }
+      const updated = await res.json();
+      const i = currentNotes.findIndex(n => String(n.id) === String(id));
+      if (i !== -1) currentNotes[i] = updated;
+      editingNoteId = null;
+      renderNotesList();
+    } catch (err) {
+      alert("Could not reach the server.");
+    } finally {
+      saveBtn.disabled = false;
+    }
+    return;
+  }
+  const deleteBtn = e.target.closest(".note-delete-btn");
+  if (deleteBtn) {
+    if (!confirm("Delete this note? It will stay in the database and can be restored from \"Recently deleted.\"")) return;
+    const id = deleteBtn.dataset.id;
+    try {
+      const res = await api.deleteSiteNote(currentHost, id);
+      if (!res.ok) { alert("Could not delete this note."); return; }
+      currentNotes = currentNotes.filter(n => String(n.id) !== String(id));
+      renderNotesList();
+    } catch (err) {
+      alert("Could not reach the server.");
+    }
+  }
+});
