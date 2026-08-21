@@ -7,6 +7,7 @@ import "./entries.js";
 import "./registry.js";
 import "./admin.js";
 import "./form.js";
+import "./siteDetail.js";
 import { icon } from "./icons.js";
 import { checkAuthAndLoad } from "./auth.js";
 

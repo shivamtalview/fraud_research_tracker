@@ -64,3 +64,15 @@ export function hideSite(host) {
 export function restoreSite(host) {
   return fetch(`/api/sites/${encodeURIComponent(host)}/restore`, { method: "POST" });
 }
+
+export function getSiteNotes(host) {
+  return fetch(`/api/sites/${encodeURIComponent(host)}/notes`).then(asJson);
+}
+
+export function addSiteNote(host, note) {
+  return fetch(`/api/sites/${encodeURIComponent(host)}/notes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ note })
+  });
+}

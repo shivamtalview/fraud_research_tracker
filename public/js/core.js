@@ -10,6 +10,7 @@ import { renderTimeline } from "./timeline.js";
 import { renderRegistry } from "./registry.js";
 import { renderEntries, renderTabs, renderLegend, renderClientFilter } from "./entries.js";
 import { renderAdminUI } from "./admin.js";
+import { renderAccountUI } from "./auth.js";
 
 export const state = {
   entries: [],
@@ -31,4 +32,5 @@ export function renderAll() {
   renderRegistry();
   renderEntries();
   renderAdminUI();
+  renderAccountUI();
 }

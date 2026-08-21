@@ -94,25 +94,17 @@ body {
 a { color: inherit; }
 .icon { display: block; flex-shrink: 0; }
 
-/* ---------- Login gate ---------- */
-.login-overlay {
-  position: fixed; inset: 0; background: var(--surface-2); z-index: 100;
-  display: flex; align-items: center; justify-content: center; padding: var(--sp-5);
+/* ---------- Account card (sidebar login) ---------- */
+#accountSection { display: flex; flex-direction: column; gap: var(--sp-2); }
+.account-title { font-size: var(--text-md); font-weight: 700; margin: 0; }
+.account-hint { font-size: var(--text-sm); color: var(--text-secondary); margin: 0 0 var(--sp-1); }
+#accountLoggedOut input[type="password"] {
+  width: 100%; font-family: inherit; font-size: var(--text-base); padding: 8px 10px; border-radius: var(--r-sm);
+  border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); margin-bottom: var(--sp-2);
 }
-.login-card {
-  background: var(--card); border: 1px solid var(--border); border-radius: var(--r-lg);
-  box-shadow: var(--shadow-lg); padding: var(--sp-8) var(--sp-6); max-width: 340px; width: 100%;
-  text-align: center; display: flex; flex-direction: column; gap: var(--sp-3); align-items: center;
-}
-.login-card h1 { font-size: var(--text-lg); font-weight: 700; margin: var(--sp-1) 0 0; }
-.login-card p { font-size: var(--text-sm); color: var(--text-secondary); margin: 0; }
-.login-card input[type="password"] {
-  width: 100%; font-family: inherit; font-size: var(--text-base); padding: 9px 12px; border-radius: var(--r-sm);
-  border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary);
-}
-.login-card input[type="password"]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
-.login-card button { width: 100%; }
+#accountLoggedOut input[type="password"]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
 .login-error { color: var(--status-critical); font-size: var(--text-sm); min-height: 14px; }
+.account-btn { width: 100%; justify-content: center; }
 
 /* ---------- Brand icon tile ---------- */
 .brand-icon {
@@ -224,8 +216,9 @@ section.block {
 .registry-grid { display: flex; flex-direction: column; gap: var(--sp-2); }
 .reg-card {
   border: 1px solid var(--border); border-radius: var(--r-sm); padding: var(--sp-3); background: var(--surface-1);
-  display: flex; flex-direction: column; gap: var(--sp-1);
+  display: flex; flex-direction: column; gap: var(--sp-1); cursor: pointer; transition: border-color .15s, background .15s;
 }
+.reg-card:hover { border-color: var(--accent); background: var(--accent-wash); }
 .reg-card .reg-name { font-size: var(--text-sm); font-weight: 700; display: flex; justify-content: space-between; align-items: center; gap: var(--sp-2); }
 .reg-card .reg-name a { text-decoration: none; }
 .reg-card .reg-name a:hover { text-decoration: underline; }
@@ -321,6 +314,19 @@ h4.section-lbl { font-size: var(--text-xs); text-transform: uppercase; letter-sp
 .slideover-body { padding: var(--sp-5); overflow-y: auto; flex: 1; }
 .slideover .form-actions { padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--border); margin: 0; flex-shrink: 0; }
 @media (max-width: 600px) { .slideover { width: 100vw; } }
+
+/* ---------- Site notes composer ---------- */
+.note-composer {
+  padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--border); flex-shrink: 0;
+  display: flex; flex-direction: column; gap: var(--sp-2);
+}
+.note-composer textarea {
+  width: 100%; font-family: inherit; font-size: var(--text-base); padding: 8px 10px; border-radius: var(--r-sm);
+  border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); resize: vertical;
+}
+.note-composer textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+.note-composer button { align-self: flex-end; }
+.restore-row.note-row { flex-direction: column; align-items: stretch; gap: var(--sp-1); }
 
 /* ---------- Add-entry form ---------- */
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }

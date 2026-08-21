@@ -25,6 +25,16 @@ async function init() {
       hidden_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS site_notes (
+      id SERIAL PRIMARY KEY,
+      host TEXT NOT NULL,
+      note TEXT NOT NULL,
+      author_role TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS site_notes_host_idx ON site_notes(host)`);
 
   // Seed initial entries only when the table is empty.
   const { rows } = await pool.query("SELECT COUNT(*)::int AS n FROM entries");
@@ -256,6 +266,32 @@ async function restoreSite(host) {
   await pool.query("DELETE FROM hidden_sites WHERE host = $1", [host]);
 }
 
+function rowToNote(row) {
+  return {
+    id: row.id,
+    host: row.host,
+    note: row.note,
+    authorRole: row.author_role,
+    createdAt: row.created_at
+  };
+}
+
+async function getSiteNotes(host) {
+  const { rows } = await pool.query(
+    "SELECT * FROM site_notes WHERE host = $1 ORDER BY created_at DESC, id DESC",
+    [host]
+  );
+  return rows.map(rowToNote);
+}
+
+async function addSiteNote(host, note, role) {
+  const { rows } = await pool.query(
+    "INSERT INTO site_notes (host, note, author_role) VALUES ($1, $2, $3) RETURNING *",
+    [host, note, role]
+  );
+  return rowToNote(rows[0]);
+}
+
 module.exports = {
   init,
   getAllEntries,
@@ -266,5 +302,7 @@ module.exports = {
   restoreEntry,
   getHiddenSites,
   hideSite,
-  restoreSite
+  restoreSite,
+  getSiteNotes,
+  addSiteNote
 };

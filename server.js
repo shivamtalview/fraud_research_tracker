@@ -12,7 +12,9 @@ const {
   restoreEntry,
   getHiddenSites,
   hideSite,
-  restoreSite
+  restoreSite,
+  getSiteNotes,
+  addSiteNote
 } = require("./db");
 
 const APP_PASSWORD = process.env.APP_PASSWORD;
@@ -87,7 +89,7 @@ function requireAdmin(req, res, next) {
   return res.status(403).json({ error: "Admin access required." });
 }
 
-app.get("/api/entries", requireAuth, async (req, res) => {
+app.get("/api/entries", async (req, res) => {
   try {
     res.json(await getAllEntries());
   } catch (err) {
@@ -197,7 +199,7 @@ app.post("/api/entries/:id/restore", requireAuth, requireAdmin, async (req, res)
   }
 });
 
-app.get("/api/hidden-sites", requireAuth, async (req, res) => {
+app.get("/api/hidden-sites", async (req, res) => {
   try {
     res.json(await getHiddenSites());
   } catch (err) {
@@ -227,6 +229,31 @@ app.post("/api/sites/:host/restore", requireAuth, requireAdmin, async (req, res)
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to restore site." });
+  }
+});
+
+app.get("/api/sites/:host/notes", async (req, res) => {
+  const host = decodeURIComponent(req.params.host || "");
+  if (!host) return res.status(400).json({ error: "Invalid host." });
+  try {
+    res.json(await getSiteNotes(host));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch notes." });
+  }
+});
+
+app.post("/api/sites/:host/notes", requireAuth, async (req, res) => {
+  const host = decodeURIComponent(req.params.host || "");
+  if (!host) return res.status(400).json({ error: "Invalid host." });
+  const note = String((req.body || {}).note || "").trim();
+  if (!note) return res.status(400).json({ error: "note cannot be empty." });
+  try {
+    const created = await addSiteNote(host, note, req.session.role);
+    res.status(201).json(created);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to save note." });
   }
 });
 

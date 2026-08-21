@@ -4,6 +4,7 @@ import { findingText } from "./findingSeverity.js";
 import * as api from "./api.js";
 import { refreshRestorePanel } from "./admin.js";
 import { icon } from "./icons.js";
+import { openSiteDetail } from "./siteDetail.js";
 
 // Known threat-service metadata, keyed by a substring of the URL's hostname.
 // `aliases` are the prose spellings used in findings/summary text, so a service
@@ -102,7 +103,7 @@ export function renderRegistry() {
       ? `<button class="icon-btn site-delete-btn" data-host="${escapeHtml(it.host)}" title="Hide this site">${icon("trash", 14)}</button>`
       : "";
     return `
-      <div class="reg-card">
+      <div class="reg-card" data-host="${escapeHtml(it.host)}" title="Click for notes on this site">
         <div class="reg-name"><a href="${safeUrl(it.url)}" target="_blank" rel="noopener">${escapeHtml(it.host)}</a><span style="display:flex;align-items:center;gap:6px;"><span class="reg-status ${statusClass}">${statusText}</span>${deleteBtn}</span></div>
         <div class="reg-cat">${escapeHtml(it.category)}</div>
         <div class="reg-meta">Seen: ${seenRange}</div>
@@ -112,17 +113,24 @@ export function renderRegistry() {
 }
 
 document.getElementById("registryGrid").addEventListener("click", async (e) => {
-  const btn = e.target.closest(".site-delete-btn");
-  if (!btn) return;
-  const host = btn.dataset.host;
-  if (!confirm(`Hide "${host}" from the tracked sites list? It will stay in the database and can be restored from "Recently deleted."`)) return;
-  try {
-    const res = await api.hideSite(host);
-    if (!res.ok) { alert("Could not hide this site."); return; }
-    state.hiddenSites.add(host);
-    renderAll();
-    refreshRestorePanel();
-  } catch (err) {
-    alert("Could not reach the server.");
+  const deleteBtn = e.target.closest(".site-delete-btn");
+  if (deleteBtn) {
+    const host = deleteBtn.dataset.host;
+    if (!confirm(`Hide "${host}" from the tracked sites list? It will stay in the database and can be restored from "Recently deleted."`)) return;
+    try {
+      const res = await api.hideSite(host);
+      if (!res.ok) { alert("Could not hide this site."); return; }
+      state.hiddenSites.add(host);
+      renderAll();
+      refreshRestorePanel();
+    } catch (err) {
+      alert("Could not reach the server.");
+    }
+    return;
   }
+
+  if (e.target.closest("a")) return; // let the external site link navigate normally
+
+  const card = e.target.closest(".reg-card");
+  if (card) openSiteDetail(card.dataset.host);
 });

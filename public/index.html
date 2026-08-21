@@ -8,18 +8,7 @@
 </head>
 <body>
 
-<div class="login-overlay" id="loginOverlay">
-  <div class="login-card">
-    <div class="brand-icon" data-icon="shield"></div>
-    <h1>Test Security &amp; Exam Fraud</h1>
-    <p>Enter the shared password to view and add findings.</p>
-    <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
-    <div class="login-error" id="loginError"></div>
-    <button class="primary" id="loginBtn">Unlock</button>
-  </div>
-</div>
-
-<div class="viz-root wrap" id="appRoot" style="display:none;">
+<div class="viz-root wrap" id="appRoot">
 
   <header>
     <div class="title-block">
@@ -32,8 +21,7 @@
     </div>
     <div class="header-actions">
       <button class="ghost icon-only" id="themeToggle" title="Toggle theme" data-icon="moon"></button>
-      <button class="ghost" id="logoutBtn"><span data-icon="log-out"></span>Log out</button>
-      <button class="primary" id="openFormBtn"><span data-icon="plus"></span>Add finding</button>
+      <button class="primary" id="openFormBtn" style="display:none;"><span data-icon="plus"></span>Add finding</button>
     </div>
   </header>
 
@@ -62,6 +50,21 @@
     </div>
 
     <aside class="rail">
+      <section class="block" id="accountSection">
+        <div id="accountLoggedOut">
+          <h2 class="account-title">Log in to make changes</h2>
+          <p class="hint account-hint">Viewing is open to everyone. Log in to add findings, write site notes, or delete/restore anything.</p>
+          <input type="password" id="sidebarPassword" placeholder="Password" autocomplete="current-password">
+          <div class="login-error" id="sidebarLoginError"></div>
+          <button class="primary account-btn" id="sidebarLoginBtn">Log in</button>
+        </div>
+        <div id="accountLoggedIn" style="display:none;">
+          <h2 class="account-title">Logged in</h2>
+          <p class="hint account-hint" id="accountRoleLabel"></p>
+          <button class="ghost account-btn" id="sidebarLogoutBtn"><span data-icon="log-out"></span>Log out</button>
+        </div>
+      </section>
+
       <section class="block">
         <div class="block-head" data-target="timelineBody">
           <h2>Report timeline <span class="hint">— click to jump</span></h2>
@@ -113,7 +116,7 @@
   <footer class="note">Internal use — Talview test security monitoring. Findings are shared and saved for every user of this tracker.</footer>
 </div>
 
-<div class="panel-backdrop" id="formBackdrop"></div>
+<div class="panel-backdrop" id="panelBackdrop"></div>
 <section class="slideover" id="formBody">
   <div class="slideover-head">
     <h2 id="formTitle">Add a new finding</h2>
@@ -166,6 +169,19 @@
     <button class="ghost" id="cancelFormBtn">Cancel</button>
     <button class="primary" id="saveEntryBtn">Save finding</button>
   </div>
+</section>
+
+<section class="slideover" id="siteDetailPanel">
+  <div class="slideover-head">
+    <h2 id="siteDetailTitle">Site notes</h2>
+    <button class="icon-btn" id="closeSiteDetailBtn" title="Close" data-icon="x"></button>
+  </div>
+  <div class="slideover-body">
+    <div id="siteDetailMeta"></div>
+    <h4 class="section-lbl" style="margin-top:20px;">Notes</h4>
+    <div class="restore-list" id="siteNotesList"></div>
+  </div>
+  <div class="note-composer" id="siteNoteComposer"></div>
 </section>
 
 <script type="module" src="js/main.js"></script>

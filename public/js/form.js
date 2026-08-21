@@ -1,18 +1,11 @@
 import { state, renderAll } from "./core.js";
 import { parseFinding, serialiseFinding } from "./findingSeverity.js";
 import * as api from "./api.js";
+import { registerPanel, openPanel, closeAllPanels } from "./panel.js";
+
+registerPanel("formBody");
 
 const FORM_FIELD_IDS = ["f-date", "f-clients", "f-title", "f-findings", "f-summary", "f-refs"];
-
-function openPanel() {
-  document.getElementById("formBody").classList.add("open");
-  document.getElementById("formBackdrop").classList.add("show");
-}
-
-function closePanel() {
-  document.getElementById("formBody").classList.remove("open");
-  document.getElementById("formBackdrop").classList.remove("show");
-}
 
 export function resetForm() {
   state.editingId = null;
@@ -25,7 +18,7 @@ export function resetForm() {
 
 export function openAddForm() {
   resetForm();
-  openPanel();
+  openPanel("formBody");
 }
 
 export function openEditForm(id) {
@@ -49,21 +42,17 @@ export function openEditForm(id) {
   note.textContent = `Editing entry #${entry.id} — ${entry.title}`;
   note.style.display = "";
 
-  openPanel();
+  openPanel("formBody");
 }
 
 function closeForm() {
   resetForm();
-  closePanel();
+  closeAllPanels();
 }
 
 document.getElementById("openFormBtn").addEventListener("click", openAddForm);
 document.getElementById("cancelFormBtn").addEventListener("click", closeForm);
 document.getElementById("closeFormBtn").addEventListener("click", closeForm);
-document.getElementById("formBackdrop").addEventListener("click", closeForm);
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && document.getElementById("formBody").classList.contains("open")) closeForm();
-});
 
 document.getElementById("saveEntryBtn").addEventListener("click", async () => {
   const date = document.getElementById("f-date").value;
@@ -101,7 +90,7 @@ document.getElementById("saveEntryBtn").addEventListener("click", async () => {
       state.entries.push(saved);
     }
     resetForm();
-    closePanel();
+    closeAllPanels();
     renderAll();
   } catch (e) {
     alert(`Could not reach the server. Your ${isEdit ? "changes were" : "finding was"} not saved.`);
