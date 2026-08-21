@@ -20,8 +20,15 @@ export function renderStats() {
     { val: critical, lbl: "Reports with critical findings", icon: "alert-triangle", accent: "var(--status-critical)" },
     { val: ago === 0 ? "Today" : (ago + "d ago"), lbl: "Last report — " + fmtDate(lastDate), icon: "clock", accent: "var(--series-aqua)" }
   ];
-  document.getElementById("statsRow").innerHTML = stats.map(s =>
-    `<div class="stat-tile"><div class="accent" style="background:${s.accent}"></div><div class="icon" style="background:color-mix(in srgb, ${s.accent} 14%, transparent);color:${s.accent}">${icon(s.icon, 16)}</div><div class="val">${s.val}</div><div class="lbl">${s.lbl}</div></div>`
+  document.getElementById("statsRow").innerHTML = stats.map(s => `
+    <div class="stat-tile">
+      <div class="accent" style="background:${s.accent}"></div>
+      <div class="icon-row">
+        <div class="icon" style="background:color-mix(in srgb, ${s.accent} 14%, transparent);color:${s.accent}">${icon(s.icon, 13)}</div>
+        <div class="lbl">${s.lbl}</div>
+      </div>
+      <div class="val">${s.val}</div>
+    </div>`
   ).join("");
   document.getElementById("lastUpdatedMeta").textContent = `${total} entries logged · last report ${fmtDate(lastDate)} · Talview test security monitoring`;
 }

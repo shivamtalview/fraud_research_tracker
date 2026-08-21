@@ -58,7 +58,7 @@ export function renderEntries() {
     const idx = state.entries.indexOf(e);
     const modeColor = e.mode === 1 ? "var(--series-violet)" : "var(--series-magenta)";
     const modeLabel = e.mode === 1 ? "MODE 1 · RED TEAM" : "MODE 2 · INVESTIGATION";
-    const clientBadges = e.clients.map(c => `<span class="badge" style="background:${clientColor(c)}">${escapeHtml(c)}</span>`).join("");
+    const clientTags = e.clients.map(c => `<span class="tag"><span class="dot" style="background:${clientColor(c)}"></span>${escapeHtml(c)}</span>`).join("");
     // Findings may mix flagged ({text, status}) and unflagged (plain string)
     // items, so decide the chip per item rather than from the first one.
     const anyFlagged = (e.findings || []).some(f => findingStatus(f));
@@ -91,7 +91,7 @@ export function renderEntries() {
           </div>
           <div class="badges">
             <span class="badge" style="background:${modeColor}">${modeLabel}</span>
-            ${clientBadges}
+            ${clientTags}
             ${adminBtns}
           </div>
         </div>

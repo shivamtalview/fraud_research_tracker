@@ -24,7 +24,7 @@ function siteMetaHtml(host) {
   const statusClass = it.status === "new" ? "st-new" : it.status === "contacted" ? "st-contacted" : "st-monitoring";
   const statusText = it.status === "new" ? "NEW" : it.status === "contacted" ? "CONTACTED" : "MONITORING";
   const seenRange = it.firstSeen === it.lastSeen ? fmtDate(it.firstSeen) : `${fmtDate(it.firstSeen)} → ${fmtDate(it.lastSeen)}`;
-  const clientChips = Array.from(it.clients).map(c => `<span class="badge" style="background:${clientColor(c)};font-size:9.5px;padding:2px 7px;">${escapeHtml(c)}</span>`).join("");
+  const clientChips = Array.from(it.clients).map(c => `<span class="tag"><span class="dot" style="background:${clientColor(c)}"></span>${escapeHtml(c)}</span>`).join("");
   return `
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <span class="reg-status ${statusClass}">${statusText}</span>

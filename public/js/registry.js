@@ -97,7 +97,7 @@ export function renderRegistry() {
   grid.innerHTML = items.map(it => {
     const statusClass = it.status === "new" ? "st-new" : it.status === "contacted" ? "st-contacted" : "st-monitoring";
     const statusText = it.status === "new" ? "NEW" : it.status === "contacted" ? "CONTACTED" : "MONITORING";
-    const clientChips = Array.from(it.clients).map(c => `<span class="badge" style="background:${clientColor(c)};font-size:9.5px;padding:2px 7px;">${escapeHtml(c)}</span>`).join("");
+    const clientChips = Array.from(it.clients).map(c => `<span class="tag"><span class="dot" style="background:${clientColor(c)}"></span>${escapeHtml(c)}</span>`).join("");
     const seenRange = it.firstSeen === it.lastSeen ? fmtDate(it.firstSeen) : `${fmtDate(it.firstSeen)} → ${fmtDate(it.lastSeen)}`;
     const deleteBtn = state.currentRole === "admin"
       ? `<button class="icon-btn site-delete-btn" data-host="${escapeHtml(it.host)}" title="Hide this site">${icon("trash", 14)}</button>`

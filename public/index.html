@@ -58,10 +58,12 @@
           <div class="login-error" id="sidebarLoginError"></div>
           <button class="primary account-btn" id="sidebarLoginBtn">Log in</button>
         </div>
-        <div id="accountLoggedIn" style="display:none;">
-          <h2 class="account-title">Logged in</h2>
-          <p class="hint account-hint" id="accountRoleLabel"></p>
-          <button class="ghost account-btn" id="sidebarLogoutBtn"><span data-icon="log-out"></span>Log out</button>
+        <div id="accountLoggedIn" class="account-loggedin-row" style="display:none;">
+          <div>
+            <h2 class="account-title">Logged in</h2>
+            <p class="hint account-hint" id="accountRoleLabel"></p>
+          </div>
+          <button class="ghost account-logout-btn" id="sidebarLogoutBtn"><span data-icon="log-out"></span>Log out</button>
         </div>
       </section>
 
