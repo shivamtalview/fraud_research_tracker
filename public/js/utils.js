@@ -1,5 +1,3 @@
-import { state } from "./core.js";
-
 export function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, ch => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -20,10 +18,10 @@ export function fmtDate(d) {
 }
 
 export function daysAgo(d) {
-  if (!state.entries.length) return 0;
   const then = new Date(d + "T00:00:00").getTime();
-  const now = new Date(state.entries.reduce((m, e) => e.date > m ? e.date : m, state.entries[0].date) + "T00:00:00").getTime();
-  return Math.round((now - then) / 86400000);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((today.getTime() - then) / 86400000);
 }
 
 export const clientColor = (name) => {
