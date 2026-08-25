@@ -62,7 +62,7 @@ export function renderEntries() {
   const list = document.getElementById("entriesList");
   const filtered = state.entries.filter(matchesFilters).sort((a, b) => b.date.localeCompare(a.date) || 0);
   if (!filtered.length) {
-    list.innerHTML = `<div class="empty">No entries match the current filters.</div>`;
+    list.innerHTML = `<tr><td colspan="5" class="empty">No entries match the current filters.</td></tr>`;
     return;
   }
   list.innerHTML = filtered.map(e => {
@@ -94,27 +94,28 @@ export function renderEntries() {
         `<button class="icon-btn entry-delete-btn" data-id="${e.id}" title="Delete this finding">${icon("trash", 14)}</button>`
       : "";
     const isOpen = expandedIds.has(String(e.id));
+    const agoLabel = daysAgo(e.date) === 0 ? "today" : daysAgo(e.date) + "d ago";
     return `
-      <div class="entry" id="entry-${idx}" style="border-left-color:${modeColor}">
-        <div class="entry-head" data-id="${e.id}">
-          <div>
-            <div class="entry-title">${escapeHtml(e.title)}</div>
-            <div class="entry-date">${fmtDate(e.date)} · ${daysAgo(e.date) === 0 ? "today" : daysAgo(e.date) + "d ago"}</div>
+      <tr class="entry-row" id="entry-${idx}" data-id="${e.id}">
+        <td style="border-left:3px solid ${modeColor}" title="${agoLabel}">${fmtDate(e.date)}</td>
+        <td class="entry-title-cell">${escapeHtml(e.title)}</td>
+        <td><span class="badge" style="background:${modeColor}">${modeLabel}</span></td>
+        <td><div class="tag-group">${clientTags}</div></td>
+        <td class="entry-actions-cell">
+          ${adminBtns}
+          <span class="chev entry-chev" style="transform:rotate(${isOpen ? "0deg" : "-90deg"})">${icon("chevron-down", 14)}</span>
+        </td>
+      </tr>
+      <tr class="entry-detail-row${isOpen ? "" : " collapsed"}">
+        <td colspan="5">
+          <div class="entry-detail">
+            <h4 class="section-lbl">Findings</h4>
+            ${findingsHtml}
+            ${summaryHtml ? `<h4 class="section-lbl">Summary</h4>${summaryHtml}` : ""}
+            ${refsHtml}
           </div>
-          <div class="badges">
-            <span class="badge" style="background:${modeColor}">${modeLabel}</span>
-            ${clientTags}
-            ${adminBtns}
-            <span class="chev entry-chev" style="transform:rotate(${isOpen ? "0deg" : "-90deg"})">${icon("chevron-down", 14)}</span>
-          </div>
-        </div>
-        <div class="entry-body${isOpen ? "" : " collapsed"}">
-          <h4 class="section-lbl">Findings</h4>
-          ${findingsHtml}
-          ${summaryHtml ? `<h4 class="section-lbl">Summary</h4>${summaryHtml}` : ""}
-          ${refsHtml}
-        </div>
-      </div>`;
+        </td>
+      </tr>`;
   }).join("");
 }
 
@@ -157,12 +158,12 @@ document.getElementById("entriesList").addEventListener("click", async (e) => {
     return;
   }
 
-  const head = e.target.closest(".entry-head");
-  if (!head) return;
-  const id = head.dataset.id;
-  const body = head.nextElementSibling;
-  const chev = head.querySelector(".entry-chev");
-  const nowOpen = body.classList.toggle("collapsed") === false;
+  const row = e.target.closest(".entry-row");
+  if (!row) return;
+  const id = row.dataset.id;
+  const detailRow = row.nextElementSibling;
+  const chev = row.querySelector(".entry-chev");
+  const nowOpen = detailRow.classList.toggle("collapsed") === false;
   if (nowOpen) { expandedIds.add(id); } else { expandedIds.delete(id); }
   if (chev) chev.style.transform = nowOpen ? "rotate(0deg)" : "rotate(-90deg)";
 });

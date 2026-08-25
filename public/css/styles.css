@@ -223,7 +223,7 @@ section.block {
 .sev-legend-item b { color: var(--text-primary); margin-left: auto; }
 
 /* ---------- Registry ---------- */
-.registry-grid { display: flex; flex-direction: column; gap: var(--sp-2); }
+.registry-grid { display: flex; flex-direction: column; gap: var(--sp-2); max-height: 420px; overflow-y: auto; padding-right: var(--sp-1); }
 .reg-card {
   border: 1px solid var(--border); border-radius: var(--r-sm); padding: var(--sp-3); background: var(--surface-1);
   display: flex; flex-direction: column; gap: var(--sp-1); cursor: pointer; transition: border-color .15s, background .15s;
@@ -279,19 +279,25 @@ section.block {
 .tag { display: inline-flex; align-items: center; gap: 5px; font-size: var(--text-xs); font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
 .tag .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 
-/* ---------- Entry cards ---------- */
-.entry {
-  border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--sp-4) var(--sp-5) var(--sp-4) var(--sp-4);
-  margin-bottom: var(--sp-3); background: var(--card);
-  border-left-width: 3px; scroll-margin-top: 70px; transition: box-shadow .3s, background .3s;
+/* ---------- Entries table ---------- */
+.entries-table-wrap { border: 1px solid var(--border); border-radius: var(--r-md); max-height: 640px; overflow-y: auto; }
+.entries-table { width: 100%; border-collapse: collapse; }
+.entries-table thead th {
+  position: sticky; top: 0; z-index: 1; background: var(--card); text-align: left;
+  font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted);
+  font-weight: 700; padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border);
 }
-.entry.flash { background: color-mix(in srgb, var(--series-blue) 10%, var(--card)); box-shadow: var(--shadow); }
-.entry-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); flex-wrap: wrap; cursor: pointer; user-select: none; }
-.entry-title { font-size: var(--text-md); font-weight: 700; margin: 0 0 3px; }
-.entry-date { font-size: var(--text-xs); color: var(--text-muted); }
+.entries-table td { padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border); font-size: var(--text-base); vertical-align: middle; white-space: nowrap; }
+.entry-title-cell { font-weight: 600; white-space: normal; }
+.entry-row { cursor: pointer; transition: background .15s; scroll-margin-top: 40px; }
+.entry-row:hover { background: var(--surface-1); }
+.entry-row.flash td { background: color-mix(in srgb, var(--series-blue) 12%, var(--card)); }
+.entry-actions-cell { display: flex; align-items: center; gap: var(--sp-2); justify-content: flex-end; }
 .entry-chev { color: var(--text-muted); transition: transform .15s; flex-shrink: 0; }
-.entry-body { margin-top: var(--sp-2); }
-.entry-body.collapsed { display: none; }
+.tag-group { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.entry-detail-row.collapsed { display: none; }
+.entry-detail-row td { padding: 0; white-space: normal; }
+.entry-detail { padding: var(--sp-1) var(--sp-4) var(--sp-4); background: var(--surface-1); }
 .badges { display: flex; gap: var(--sp-2); flex-wrap: wrap; align-items: center; }
 .badge {
   font-size: var(--text-xs); font-weight: 700; padding: 3px 9px; border-radius: 999px; color: #fff;
@@ -299,10 +305,10 @@ section.block {
 }
 .badge.outline { background: transparent; border: 1px solid var(--baseline); color: var(--text-secondary); font-weight: 600; }
 h4.section-lbl { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); margin: var(--sp-3) 0 var(--sp-1); font-weight: 700; }
-.entry ul { margin: 0; padding-left: 18px; font-size: var(--text-base); }
-.entry ul li { margin-bottom: var(--sp-1); }
-.entry ol { margin: 0; padding-left: 18px; font-size: var(--text-base); }
-.entry ol li { margin-bottom: var(--sp-2); }
+.entry-detail ul { margin: 0; padding-left: 18px; font-size: var(--text-base); }
+.entry-detail ul li { margin-bottom: var(--sp-1); }
+.entry-detail ol { margin: 0; padding-left: 18px; font-size: var(--text-base); }
+.entry-detail ol li { margin-bottom: var(--sp-2); }
 .status-chip { font-size: var(--text-xs); font-weight: 700; padding: 1px 7px; border-radius: 5px; margin-left: var(--sp-2); color: #fff; white-space: nowrap; display: inline-block; }
 .refs { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-top: var(--sp-1); }
 .refs a {
