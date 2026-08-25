@@ -1,6 +1,6 @@
 // Viewing the dashboard is public. A session (role: "user" or "admin") is
-// only needed to write anything, and is established from the "Account" card
-// in the rail rather than a page-blocking login screen.
+// only needed to write anything, and is established from the compact login
+// control in the header rather than a page-blocking login screen.
 import { state, renderAll } from "./core.js";
 import * as api from "./api.js";
 import { refreshRestorePanel } from "./admin.js";
@@ -46,15 +46,15 @@ export async function checkAuthAndLoad() {
 }
 
 export async function doLogin() {
-  const password = document.getElementById("sidebarPassword").value;
-  const errEl = document.getElementById("sidebarLoginError");
+  const password = document.getElementById("headerPassword").value;
+  const errEl = document.getElementById("headerLoginError");
   errEl.textContent = "";
   try {
     const res = await api.login(password);
     if (res.ok) {
       const data = await res.json();
       state.currentRole = data.role;
-      document.getElementById("sidebarPassword").value = "";
+      document.getElementById("headerPassword").value = "";
       renderAll();
       if (state.currentRole === "admin") refreshRestorePanel();
     } else {
@@ -72,8 +72,8 @@ export async function doLogout() {
   renderAll();
 }
 
-document.getElementById("sidebarLoginBtn").addEventListener("click", doLogin);
-document.getElementById("sidebarPassword").addEventListener("keydown", (e) => {
+document.getElementById("headerLoginBtn").addEventListener("click", doLogin);
+document.getElementById("headerPassword").addEventListener("keydown", (e) => {
   if (e.key === "Enter") doLogin();
 });
-document.getElementById("sidebarLogoutBtn").addEventListener("click", doLogout);
+document.getElementById("headerLogoutBtn").addEventListener("click", doLogout);

@@ -20,6 +20,15 @@
       </div>
     </div>
     <div class="header-actions">
+      <div class="account-controls" id="accountLoggedOut">
+        <input type="password" id="headerPassword" placeholder="Password" autocomplete="current-password">
+        <button class="ghost" id="headerLoginBtn">Log in</button>
+        <span class="login-error" id="headerLoginError"></span>
+      </div>
+      <div class="account-controls" id="accountLoggedIn" style="display:none;">
+        <span class="account-hint" id="accountRoleLabel"></span>
+        <button class="ghost" id="headerLogoutBtn"><span data-icon="log-out"></span>Log out</button>
+      </div>
       <button class="ghost icon-only" id="themeToggle" title="Toggle theme" data-icon="moon"></button>
       <button class="primary" id="openFormBtn" style="display:none;"><span data-icon="plus"></span>Add finding</button>
     </div>
@@ -27,101 +36,78 @@
 
   <div class="stats" id="statsRow"></div>
 
-  <div class="dashboard-grid">
-    <div class="main-col">
-      <div class="tabbar" id="tabbar">
-        <div class="tab active" data-mode="all">All entries</div>
-        <div class="tab" data-mode="1">Mode 1 · Red Team</div>
-        <div class="tab" data-mode="2">Mode 2 · Investigation</div>
-      </div>
+  <section class="block">
+    <div class="block-head" data-target="timelineBody">
+      <h2>Report timeline <span class="hint">— click to jump</span></h2>
+      <span class="chev" data-icon="chevron-down"></span>
+    </div>
+    <div class="block-body" id="timelineBody">
+      <div class="timeline-scroll"><div class="timeline" id="timeline"></div></div>
+    </div>
+  </section>
 
-      <div class="filter-row">
-        <div class="search-wrap">
-          <span class="search-icon" data-icon="search"></span>
-          <input type="search" id="searchBox" placeholder="Search findings...">
-        </div>
-        <select id="clientFilter">
-          <option value="all">All clients</option>
-        </select>
-        <div class="legend" id="legend"></div>
-      </div>
-
-      <div class="entries-table-wrap">
-        <table class="entries-table">
-          <thead>
-            <tr><th>Date</th><th>Title</th><th>Mode</th><th>Clients</th><th></th></tr>
-          </thead>
-          <tbody id="entriesList"></tbody>
-        </table>
+  <section class="block" id="sevSection">
+    <div class="block-head" data-target="sevBody">
+      <h2>Severity breakdown <span class="hint">— across all reports</span></h2>
+      <span class="chev" data-icon="chevron-down"></span>
+    </div>
+    <div class="block-body" id="sevBody">
+      <div class="sev-bar-wrap">
+        <div class="sev-bar" id="sevBar"></div>
+        <div class="sev-legend" id="sevLegend"></div>
       </div>
     </div>
+  </section>
 
-    <aside class="rail">
-      <section class="block" id="accountSection">
-        <div id="accountLoggedOut">
-          <h2 class="account-title">Log in to make changes</h2>
-          <p class="hint account-hint">Viewing is open to everyone. Log in to add findings, write site notes, or delete/restore anything.</p>
-          <input type="password" id="sidebarPassword" placeholder="Password" autocomplete="current-password">
-          <div class="login-error" id="sidebarLoginError"></div>
-          <button class="primary account-btn" id="sidebarLoginBtn">Log in</button>
-        </div>
-        <div id="accountLoggedIn" class="account-loggedin-row" style="display:none;">
-          <div>
-            <h2 class="account-title">Logged in</h2>
-            <p class="hint account-hint" id="accountRoleLabel"></p>
-          </div>
-          <button class="ghost account-logout-btn" id="sidebarLogoutBtn"><span data-icon="log-out"></span>Log out</button>
-        </div>
-      </section>
+  <section class="block">
+    <div class="block-head" data-target="registryBody">
+      <h2>Tracked sites &amp; services <span class="hint">— every service identified</span></h2>
+      <span class="chev" data-icon="chevron-down"></span>
+    </div>
+    <div class="block-body" id="registryBody">
+      <div class="registry-grid" id="registryGrid"></div>
+    </div>
+  </section>
 
-      <section class="block">
-        <div class="block-head" data-target="timelineBody">
-          <h2>Report timeline <span class="hint">— click to jump</span></h2>
-          <span class="chev" data-icon="chevron-down"></span>
-        </div>
-        <div class="block-body" id="timelineBody">
-          <div class="timeline-scroll"><div class="timeline" id="timeline"></div></div>
-        </div>
-      </section>
+  <section class="block" id="restoreSection" style="display:none;">
+    <div class="block-head" data-target="restoreBody">
+      <h2>Recently deleted <span class="admin-badge">ADMIN</span></h2>
+      <span class="chev" data-icon="chevron-down"></span>
+    </div>
+    <div class="block-body collapsed" id="restoreBody">
+      <h4 class="section-lbl">Deleted findings</h4>
+      <div class="restore-list" id="deletedEntriesList"><div class="empty">Loading…</div></div>
+      <h4 class="section-lbl" style="margin-top:16px;">Hidden sites &amp; services</h4>
+      <div class="restore-list" id="hiddenSitesList"><div class="empty">Loading…</div></div>
+      <h4 class="section-lbl" style="margin-top:16px;">Deleted site notes</h4>
+      <div class="restore-list" id="deletedNotesList"><div class="empty">Loading…</div></div>
+    </div>
+  </section>
 
-      <section class="block" id="sevSection">
-        <div class="block-head" data-target="sevBody">
-          <h2>Severity breakdown <span class="hint">— across all reports</span></h2>
-          <span class="chev" data-icon="chevron-down"></span>
-        </div>
-        <div class="block-body" id="sevBody">
-          <div class="sev-bar-wrap">
-            <div class="sev-bar" id="sevBar"></div>
-            <div class="sev-legend" id="sevLegend"></div>
-          </div>
-        </div>
-      </section>
+  <div class="tabbar" id="tabbar">
+    <div class="tab active" data-mode="all">All entries</div>
+    <div class="tab" data-mode="1">Mode 1 · Red Team</div>
+    <div class="tab" data-mode="2">Mode 2 · Investigation</div>
+  </div>
 
-      <section class="block">
-        <div class="block-head" data-target="registryBody">
-          <h2>Tracked sites &amp; services <span class="hint">— every service identified</span></h2>
-          <span class="chev" data-icon="chevron-down"></span>
-        </div>
-        <div class="block-body" id="registryBody">
-          <div class="registry-grid" id="registryGrid"></div>
-        </div>
-      </section>
+  <div class="filter-row">
+    <div class="search-wrap">
+      <span class="search-icon" data-icon="search"></span>
+      <input type="search" id="searchBox" placeholder="Search findings...">
+    </div>
+    <select id="clientFilter">
+      <option value="all">All clients</option>
+    </select>
+    <div class="legend" id="legend"></div>
+  </div>
 
-      <section class="block" id="restoreSection" style="display:none;">
-        <div class="block-head" data-target="restoreBody">
-          <h2>Recently deleted <span class="admin-badge">ADMIN</span></h2>
-          <span class="chev" data-icon="chevron-down"></span>
-        </div>
-        <div class="block-body collapsed" id="restoreBody">
-          <h4 class="section-lbl">Deleted findings</h4>
-          <div class="restore-list" id="deletedEntriesList"><div class="empty">Loading…</div></div>
-          <h4 class="section-lbl" style="margin-top:16px;">Hidden sites &amp; services</h4>
-          <div class="restore-list" id="hiddenSitesList"><div class="empty">Loading…</div></div>
-          <h4 class="section-lbl" style="margin-top:16px;">Deleted site notes</h4>
-          <div class="restore-list" id="deletedNotesList"><div class="empty">Loading…</div></div>
-        </div>
-      </section>
-    </aside>
+  <div class="entries-table-wrap">
+    <table class="entries-table">
+      <thead>
+        <tr><th>Date</th><th>Title</th><th>Mode</th><th>Clients</th><th></th></tr>
+      </thead>
+      <tbody id="entriesList"></tbody>
+    </table>
   </div>
 
   <footer class="note">Internal use — Talview test security monitoring. Findings are shared and saved for every user of this tracker.</footer>

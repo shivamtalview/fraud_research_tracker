@@ -94,21 +94,15 @@ body {
 a { color: inherit; }
 .icon { display: block; flex-shrink: 0; }
 
-/* ---------- Account card (sidebar login) ---------- */
-#accountSection { display: flex; flex-direction: column; gap: var(--sp-2); }
-.account-title { font-size: var(--text-md); font-weight: 700; margin: 0; }
-.account-hint { font-size: var(--text-sm); color: var(--text-secondary); margin: 0 0 var(--sp-1); }
-#accountLoggedOut input[type="password"] {
-  width: 100%; font-family: inherit; font-size: var(--text-base); padding: 8px 10px; border-radius: var(--r-sm);
-  border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); margin-bottom: var(--sp-2);
+/* ---------- Account controls (header login) ---------- */
+.account-controls { display: flex; align-items: center; gap: var(--sp-2); }
+#headerPassword {
+  width: 130px; font-family: inherit; font-size: var(--text-sm); padding: 7px 10px; border-radius: var(--r-sm);
+  border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary);
 }
-#accountLoggedOut input[type="password"]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
-.login-error { color: var(--status-critical); font-size: var(--text-sm); min-height: 14px; }
-.account-btn { width: 100%; justify-content: center; }
-.account-loggedin-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
-.account-loggedin-row .account-title { font-size: var(--text-base); }
-.account-loggedin-row .account-hint { margin: 2px 0 0; }
-.account-logout-btn { flex-shrink: 0; padding: 6px 11px; font-size: var(--text-sm); }
+#headerPassword:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+.login-error { color: var(--status-critical); font-size: var(--text-xs); }
+.account-hint { font-size: var(--text-sm); color: var(--text-secondary); white-space: nowrap; }
 
 /* ---------- Brand icon tile ---------- */
 .brand-icon {
@@ -173,16 +167,10 @@ header {
 .stat-tile .lbl { font-size: var(--text-xs); color: var(--text-muted); }
 .stat-tile .accent { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
 
-/* ---------- Dashboard grid ---------- */
-.dashboard-grid { display: grid; grid-template-columns: 1fr 340px; gap: var(--sp-6); align-items: start; }
-@media (max-width: 980px) { .dashboard-grid { grid-template-columns: 1fr; } }
-.main-col { min-width: 0; }
-.rail { display: flex; flex-direction: column; gap: var(--sp-5); }
-
-/* ---------- Section shell (rail cards) ---------- */
+/* ---------- Section shell (stacked above the findings table) ---------- */
 section.block {
   background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md);
-  padding: var(--sp-5);
+  padding: var(--sp-5); margin-bottom: var(--sp-5);
 }
 .block-head {
   display: flex; align-items: center; justify-content: space-between; cursor: pointer;
@@ -223,7 +211,10 @@ section.block {
 .sev-legend-item b { color: var(--text-primary); margin-left: auto; }
 
 /* ---------- Registry ---------- */
-.registry-grid { display: flex; flex-direction: column; gap: var(--sp-2); max-height: 420px; overflow-y: auto; padding-right: var(--sp-1); }
+.registry-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--sp-3);
+  max-height: 420px; overflow-y: auto; padding-right: var(--sp-1); align-content: start;
+}
 .reg-card {
   border: 1px solid var(--border); border-radius: var(--r-sm); padding: var(--sp-3); background: var(--surface-1);
   display: flex; flex-direction: column; gap: var(--sp-1); cursor: pointer; transition: border-color .15s, background .15s;
