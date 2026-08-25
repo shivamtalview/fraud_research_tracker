@@ -87,11 +87,31 @@ export function buildRegistry() {
   return Array.from(map.values()).sort((a, b) => b.lastSeen.localeCompare(a.lastSeen));
 }
 
+// Search term for the tracked-sites box — UI-only, not part of core.js's
+// shared `state` since nothing outside this file needs it.
+let siteSearchTerm = "";
+
+export function setSiteSearchTerm(term) {
+  siteSearchTerm = term;
+  renderRegistry();
+}
+
+function matchesSiteSearch(it) {
+  if (!siteSearchTerm) return true;
+  const hay = [it.host, it.category, it.status, ...Array.from(it.clients)].join(" ").toLowerCase();
+  return hay.includes(siteSearchTerm.toLowerCase());
+}
+
 export function renderRegistry() {
-  const items = buildRegistry();
+  const all = buildRegistry();
+  const items = all.filter(matchesSiteSearch);
   const grid = document.getElementById("registryGrid");
-  if (!items.length) {
+  if (!all.length) {
     grid.innerHTML = `<div class="empty">No external sites or services referenced yet.</div>`;
+    return;
+  }
+  if (!items.length) {
+    grid.innerHTML = `<div class="empty">No tracked sites match "${escapeHtml(siteSearchTerm)}".</div>`;
     return;
   }
   grid.innerHTML = items.map(it => {
@@ -133,4 +153,8 @@ document.getElementById("registryGrid").addEventListener("click", async (e) => {
 
   const card = e.target.closest(".reg-card");
   if (card) openSiteDetail(card.dataset.host);
+});
+
+document.getElementById("siteSearchBox").addEventListener("input", (e) => {
+  setSiteSearchTerm(e.target.value);
 });
