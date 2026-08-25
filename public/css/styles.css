@@ -146,7 +146,7 @@ button.icon-only { padding: 8px; }
 
 /* ---------- Header ---------- */
 header {
-  position: sticky; top: 0; z-index: 20; margin: 0 calc(-1 * var(--sp-6)) var(--sp-5);
+  position: sticky; top: 0; z-index: 20; margin: calc(-1 * var(--sp-5)) calc(-1 * var(--sp-6)) var(--sp-5);
   padding: var(--sp-4) var(--sp-6); background: var(--header-bg);
   display: flex; justify-content: space-between; align-items: center;
   gap: var(--sp-4); flex-wrap: wrap; border-bottom: 1px solid var(--header-border);
