@@ -104,7 +104,7 @@ export function renderRegistry() {
       : "";
     return `
       <div class="reg-card" data-host="${escapeHtml(it.host)}" title="Click for notes on this site">
-        <div class="reg-name"><a href="${safeUrl(it.url)}" target="_blank" rel="noopener">${escapeHtml(it.host)}</a><span style="display:flex;align-items:center;gap:6px;"><span class="reg-status ${statusClass}">${statusText}</span>${deleteBtn}</span></div>
+        <div class="reg-name"><a href="${safeUrl(it.url)}" target="_blank" rel="noopener" title="${escapeHtml(it.host)}">${escapeHtml(it.host)}</a><span class="reg-status-group"><span class="reg-status ${statusClass}">${statusText}</span>${deleteBtn}</span></div>
         <div class="reg-cat">${escapeHtml(it.category)}</div>
         <div class="reg-meta">Seen: ${seenRange}</div>
         <div class="reg-clients">${clientChips}</div>

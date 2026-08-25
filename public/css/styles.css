@@ -50,6 +50,15 @@
   /* ---- accent (single accent for actions/focus, not decoration) ---- */
   --accent: var(--series-blue);
   --accent-wash: color-mix(in srgb, var(--accent) 10%, transparent);
+
+  /* ---- header (fixed navy brand band — deliberately NOT redefined under
+     [data-theme="dark"] below, so it stays the same in both themes) ---- */
+  --header-bg: #0d2547;
+  --header-text: #ffffff;
+  --header-text-secondary: #b7c6de;
+  --header-border: rgba(255,255,255,0.16);
+  --header-surface: rgba(255,255,255,0.10);
+  --header-surface-hover: rgba(255,255,255,0.16);
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
@@ -138,16 +147,24 @@ button.icon-only { padding: 8px; }
 /* ---------- Header ---------- */
 header {
   position: sticky; top: 0; z-index: 20; margin: 0 calc(-1 * var(--sp-6)) var(--sp-5);
-  padding: var(--sp-4) var(--sp-6); background: color-mix(in srgb, var(--surface-2) 92%, transparent);
-  backdrop-filter: blur(6px);
+  padding: var(--sp-4) var(--sp-6); background: var(--header-bg);
   display: flex; justify-content: space-between; align-items: center;
-  gap: var(--sp-4); flex-wrap: wrap; border-bottom: 1px solid var(--border);
+  gap: var(--sp-4); flex-wrap: wrap; border-bottom: 1px solid var(--header-border);
 }
 .title-block { display: flex; gap: var(--sp-3); align-items: center; }
-.title-block h1 { font-size: var(--text-xl); font-weight: 700; margin: 0; letter-spacing: -.01em; }
-.title-block .sub { margin: 2px 0 0; color: var(--text-secondary); font-size: var(--text-sm); }
+header .title-block h1 { font-size: var(--text-xl); font-weight: 700; margin: 0; letter-spacing: -.01em; color: var(--header-text); }
+header .title-block .sub { margin: 2px 0 0; color: var(--header-text-secondary); font-size: var(--text-sm); }
 .title-block .meta { display: none; }
 .header-actions { display: flex; gap: var(--sp-2); align-items: center; }
+header .brand-icon { background: var(--header-surface); color: var(--header-text); }
+header .account-hint { color: var(--header-text-secondary); }
+header .login-error { color: #ffb3b0; }
+header #headerPassword {
+  background: var(--header-surface); border-color: var(--header-border); color: var(--header-text);
+}
+header #headerPassword::placeholder { color: var(--header-text-secondary); }
+header button.ghost { color: var(--header-text); border-color: var(--header-border); }
+header button.ghost:hover { background: var(--header-surface-hover); }
 
 /* ---------- Stat tiles ---------- */
 .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--sp-3); margin-bottom: var(--sp-6); }
@@ -218,11 +235,13 @@ section.block {
 .reg-card {
   border: 1px solid var(--border); border-radius: var(--r-sm); padding: var(--sp-3); background: var(--surface-1);
   display: flex; flex-direction: column; gap: var(--sp-1); cursor: pointer; transition: border-color .15s, background .15s;
+  overflow: hidden;
 }
 .reg-card:hover { border-color: var(--accent); background: var(--accent-wash); }
-.reg-card .reg-name { font-size: var(--text-sm); font-weight: 700; display: flex; justify-content: space-between; align-items: center; gap: var(--sp-2); }
-.reg-card .reg-name a { text-decoration: none; }
+.reg-card .reg-name { font-size: var(--text-sm); font-weight: 700; display: flex; align-items: center; gap: var(--sp-2); }
+.reg-card .reg-name a { text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
 .reg-card .reg-name a:hover { text-decoration: underline; }
+.reg-status-group { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .reg-cat { font-size: var(--text-xs); color: var(--text-secondary); }
 .reg-meta { font-size: var(--text-xs); color: var(--text-muted); }
 .reg-clients { display: flex; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-1); }
